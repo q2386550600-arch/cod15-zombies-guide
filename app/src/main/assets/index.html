@@ -1,1 +1,70 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>COD15 僵尸彩蛋助手</title><style>body{margin:0;background:#0f1113;color:#f4f5f6;font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}.app{max-width:680px;margin:auto;padding:16px}.tabs{display:flex;gap:8px;overflow:auto;margin:12px 0}.tabs button,.actions button{border:1px solid #343a40;background:#1a1e22;color:#fff;border-radius:12px;padding:10px 12px}.tabs button.active,.actions .primary{border-color:#f3c14b;color:#111;background:#f3c14b}.card{background:#171a1e;border:1px solid #30363d;border-radius:18px;padding:16px;margin-top:12px}.muted{color:#a9b0b8;font-size:13px}.place{color:#f3c14b;margin:8px 0}.block{background:#20242a;border-radius:12px;padding:12px;margin-top:10px;line-height:1.6}.actions{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:14px}.list button{display:block;width:100%;text-align:left;background:transparent;border:0;color:#ddd;padding:10px 0;border-bottom:1px solid #30363d}.done{color:#70d69a!important}</style></head><body><main class="app"><h2>COD15 僵尸彩蛋助手</h2><div class="muted">离线版 · 一次只看当前一步</div><div class="tabs" id="tabs"></div><div class="card"><div class="muted" id="counter"></div><h2 id="title"></h2><div class="place" id="place"></div><div class="block" id="action"></div><div class="block"><b>成功标志</b><br><span id="success"></span></div><div class="block"><b>提示</b><br><span id="tips"></span></div><div class="actions"><button id="prev">上一步</button><button id="next" class="primary">完成这一步 →</button></div></div><div class="card"><b>本局流程</b><div class="list" id="list"></div></div></main><script>const D={alpha:{n:'阿尔法·欧米伽',s:[['恢复地面电力','发电站','拉下总电闸并清掉电狗。','地图恢复供电。','先只做供电。'],['地下通风封锁','地下发电机室','进入地下启动通风控制台并撑过封锁。','封锁结束。','AI可能卡路。'],['修4台通风机','地面建筑外侧','找冒绿气的坏通风机并修满4台。','强化机恢复。','绿色表针的不用修。'],['启动绿色电脑','作战室一楼','和绿色屏幕电脑互动。','电脑开始讲话。','正常在线模式。'],['读取电视代码','地下卧室区','买电拳套，在雪花电视旁用电拳套击杀僵尸，再互动电视记录字母+时间。','得到多组代码。','不要自己重排代码。'],['调时钟','地面各房屋','按字母把对应房屋的钟调到电视给出的时间。','最后未指定的钟自动转动。','记下最后4位时间。'],['输入密码','作战室绿色电脑','输入最后一只钟停下的4位时间。','电脑接受密码。','错了就重新核对。']]},tag:{n:'亡灵节',s:[['开两处电源','码头 + 沉船主控室','先开码头电，再上沉船主控室开第二处电。','两处供电开启。','第二处在船最上层主控室。'],['拿蓝石交隐士','灯塔洞穴 → 灯塔顶','打下蓝色发光石，捡起后带到灯塔顶升降板。','隐士收走蓝石。','拿到后直接上灯塔。'],['修两条滑索','船头 + 船尾','找到两只曲柄并修好两处滑索。','灯塔顶可拿滑索把手。','曲柄有随机点。'],['上山顶基地','山顶基地','用滑索上山顶基地并开电。','山顶区域开放。','主线关键前置。'],['完成两座图腾','任意两座图腾','每座做完3个挑战。','隐士给4个转盘。','图腾像士兵假人。']]},blood:{n:'亡者之血',s:[['基础前置','全图','开两处电、做幽灵盾并解锁强化机。','盾和强化机都可用。','后续大量依赖幽灵盾。'],['拿地狱投掷物与勺子','全图','喂满3个狗头并取得勺子。','两件关键道具到手。','没有勺子无法继续。'],['开典狱长秘密房','典狱长之家二楼','18回合后用勺子打墙，并让典狱长攻击该墙。','秘密房打开。','别提前杀典狱长。'],['追幽灵鸟','全图','前三次用盾冲击赶鸟，第4次不要直接冲击。','进入第4次抓鸟。','用盾观察最稳。']]},classified:{n:'机密',s:[['先确认主线性质','整张地图','机密没有传统解谜主线；主结局条件是活到150回合。','150回合自动播放结局。','拿钥匙开抽屉不是传统主线。'],['开电和强化机','作战室 / 实验区 / 51区','按正常流程开电并解锁强化机。','强化机可使用。','这是高回合准备。'],['准备高回合配置','全图','拿高回合武器、特长和生存配置。','能稳定清怪。','稳定比解谜重要。'],['冲150回合','稳定刷怪点','持续生存到150回合。','触发结局动画。','耗时很长。']]}};const order=['alpha','tag','blood','classified'];let k='alpha',i=0;const done={};order.forEach(x=>done[x]=new Set());const $=x=>document.getElementById(x);function render(){const m=D[k],s=m.s[i];$('tabs').innerHTML='';order.forEach(x=>{const b=document.createElement('button');b.textContent=D[x].n;b.className=x===k?'active':'';b.onclick=()=>{k=x;i=0;render()};$('tabs').appendChild(b)});$('counter').textContent=`第 ${i+1} / ${m.s.length} 步`;$('title').textContent=s[0];$('place').textContent='地点：'+s[1];$('action').textContent=s[2];$('success').textContent=s[3];$('tips').textContent=s[4];$('prev').disabled=i===0;$('next').textContent=i===m.s.length-1?'标记完成':'完成这一步 →';$('list').innerHTML='';m.s.forEach((x,j)=>{const b=document.createElement('button');b.textContent=`${j+1}. ${x[0]}`;if(done[k].has(j))b.className='done';b.onclick=()=>{i=j;render()};$('list').appendChild(b)})}$('prev').onclick=()=>{if(i>0){i--;render()}};$('next').onclick=()=>{done[k].add(i);if(i<D[k].s.length-1)i++;render()};render();</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1113">
+<title>COD15 僵尸彩蛋助手</title>
+<style>
+:root{--bg:#0f1113;--panel:#171a1e;--panel2:#20242a;--line:#30363d;--text:#f4f5f6;--muted:#9fa7b1;--accent:#f3c14b;--good:#71d69a;--danger:#ff7c7c}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}body{min-height:100vh}.app{max-width:720px;margin:0 auto;padding:0 14px 44px}.top{position:sticky;top:0;z-index:20;background:rgba(15,17,19,.96);backdrop-filter:blur(14px);padding:12px 0 10px;border-bottom:1px solid var(--line)}.brand{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.brand h1{font-size:20px;margin:0 0 3px}.muted{font-size:12px;color:var(--muted);line-height:1.5}.search-wrap{display:flex;gap:8px;margin-top:10px;position:relative}.search-wrap input,.notes{width:100%;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;font-size:16px;padding:12px;outline:none}.search-wrap input:focus,.notes:focus{border-color:var(--accent)}button{font:inherit}.icon-btn{min-width:44px;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px}.search-results{position:absolute;left:0;right:0;top:52px;background:#15181c;border:1px solid var(--line);border-radius:14px;max-height:360px;overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.35);z-index:40}.search-hit{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:12px}.search-hit b,.search-hit small{display:block}.search-hit small{color:var(--muted);margin-top:3px}.search-empty{padding:14px;color:var(--muted);font-size:13px}.tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 0 3px;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--text);padding:9px 11px;border-radius:12px;font-size:13px}.tab.active{border-color:var(--accent);color:var(--accent)}.section{margin-top:14px}.map-title{font-size:23px;margin:0}.meta{color:var(--muted);font-size:13px;margin-top:4px}.source{font-size:11px;color:#77808a;margin-top:5px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:15px;margin-top:12px}.card h2,.card h3{margin:0}.requirements summary{cursor:pointer;font-weight:700}.requirements ul{margin:10px 0 0;padding-left:20px;color:#d5d9de;line-height:1.7;font-size:14px}.progress-line{display:flex;justify-content:space-between;gap:12px;align-items:center}.bar{height:8px;background:#272c32;border-radius:99px;overflow:hidden;margin-top:9px}.bar>div{height:100%;width:0;background:var(--accent);transition:width .2s}.badge{display:inline-flex;border-radius:999px;padding:4px 8px;background:var(--accent);color:#101214;font-size:12px;font-weight:800}.step-title{font-size:22px;line-height:1.3;margin:10px 0 5px}.place{color:var(--accent);font-size:14px}.block{background:var(--panel2);border-radius:14px;padding:13px;margin-top:10px}.label{color:var(--muted);font-size:12px;margin-bottom:5px}.main{font-size:16px;line-height:1.65}.success{color:var(--good)}.tips{color:#d6dbe0}.actions{display:grid;grid-template-columns:1fr 1.35fr;gap:9px;margin-top:12px}.actions button,.secondary{min-height:47px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-weight:700}.actions .primary{background:var(--accent);border-color:var(--accent);color:#111}.actions button:disabled{opacity:.35}.done-toggle{width:100%;margin-top:9px;min-height:44px;border:1px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px}.done-toggle.done-active{border-color:var(--good);color:var(--good)}.notes{min-height:110px;resize:vertical;line-height:1.5;margin-top:9px}.note-row{display:flex;justify-content:space-between;gap:10px;align-items:center}.flow{margin-top:7px}.flow-row{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--text);padding:11px 2px}.flow-row.current{background:#1c2025}.flow-row.done .flow-num{background:var(--good);border-color:var(--good);color:#0f1113}.flow-num{width:26px;height:26px;flex:0 0 26px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:12px;color:var(--muted)}.flow-copy{min-width:0}.flow-copy b{display:block;font-size:14px}.flow-copy small{display:block;color:var(--muted);margin-top:3px}.danger{width:100%;min-height:44px;border:1px solid #4a3033;background:#23191b;color:#efb4b8;border-radius:12px;margin-top:12px}.notice{font-size:12px;color:var(--muted);line-height:1.6;padding:10px 2px 0}.version{font-size:11px;color:#69727c;text-align:center;margin-top:20px}@media(max-width:390px){.step-title{font-size:20px}.actions{grid-template-columns:1fr}.map-title{font-size:21px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <div class="brand"><div><h1>COD15 僵尸彩蛋助手</h1><div class="muted">BO4 全8图 · 中文 · 离线 · 进度自动保存</div></div><div class="muted">v0.6</div></div>
+    <div class="search-wrap">
+      <input id="search" type="search" placeholder="搜步骤、房间、道具…例如：电视、蓝石、盾牌" autocomplete="off">
+      <button id="searchClear" class="icon-btn" type="button" aria-label="清空搜索">×</button>
+      <div id="searchResults" class="search-results" hidden></div>
+    </div>
+    <nav id="mapTabs" class="tabs" aria-label="地图"></nav>
+  </header>
+
+  <section class="section">
+    <h2 id="mapName" class="map-title"></h2>
+    <div id="mapMeta" class="meta"></div>
+    <div id="source" class="source"></div>
+  </section>
+
+  <details class="card requirements">
+    <summary>开局前置 / 必要道具</summary>
+    <ul id="requirements"></ul>
+  </details>
+
+  <section class="card">
+    <div class="progress-line"><b>本图进度</b><span id="progressText" class="muted"></span></div>
+    <div class="bar"><div id="progressBar"></div></div>
+  </section>
+
+  <section class="card">
+    <span id="stepNo" class="badge"></span>
+    <div id="stepTitle" class="step-title"></div>
+    <div id="stepPlace" class="place"></div>
+    <div class="block"><div class="label">现在只做这一件事</div><div id="stepAction" class="main"></div></div>
+    <div class="block"><div class="label">做到什么算成功</div><div id="stepSuccess" class="main success"></div></div>
+    <div class="block"><div class="label">容易翻车的点</div><div id="stepTips" class="main tips"></div></div>
+    <div class="actions"><button id="prevBtn" type="button">← 上一步</button><button id="nextBtn" class="primary" type="button">完成这一步 →</button></div>
+    <button id="doneBtn" class="done-toggle" type="button">标记当前步骤完成</button>
+  </section>
+
+  <section class="card">
+    <div class="note-row"><div><b>本局记事 / 密码记录</b><div class="muted">时钟、三位数、符号顺序都可以记这里</div></div><span id="noteStatus" class="muted">自动保存</span></div>
+    <textarea id="notes" class="notes" placeholder="例：电视：E0215 / A0245 / C1200…\nKronorium：872以外的本局随机码…"></textarea>
+  </section>
+
+  <section class="card">
+    <h3>完整流程</h3>
+    <div class="muted" style="margin-top:4px">点任意步骤直接跳转。绿色 ✓ 表示已完成。</div>
+    <div id="flow" class="flow"></div>
+    <button id="resetBtn" class="danger" type="button">清空本图完成进度</button>
+  </section>
+
+  <div class="notice">随机密码、符号、刷新点以你当前这局为准。固定顺序只在社区攻略确认固定时写死；例如 Alpha Omega 的5个时钟必须严格按电视播报顺序调。</div>
+  <div class="version">攻略主体核对：COD Zombies Guides（2026-07-07 更新）+ 社区流程交叉检查</div>
+</main>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
