@@ -6,6 +6,15 @@ android {
     namespace 'com.openai.cod15guide'
     compileSdk 35
 
+    signingConfigs {
+        guide {
+            storeFile rootProject.file('debug-signing.jks')
+            storePassword 'bo4guide'
+            keyAlias 'bo4guide'
+            keyPassword 'bo4guide'
+        }
+    }
+
     defaultConfig {
         applicationId 'com.openai.cod15guide'
         minSdk 24
@@ -15,7 +24,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.guide
+        }
         release {
+            signingConfig signingConfigs.guide
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
