@@ -1,11 +1,7 @@
-plugins {
-    id 'com.android.application'
-}
-
+plugins { id 'com.android.application' }
 android {
     namespace 'com.openai.cod15guide'
     compileSdk 35
-
     signingConfigs {
         guide {
             storeFile rootProject.file('debug-signing.jks')
@@ -14,19 +10,15 @@ android {
             keyPassword 'bo4guide'
         }
     }
-
     defaultConfig {
         applicationId 'com.openai.cod15guide'
         minSdk 24
         targetSdk 35
-        versionCode 8
-        versionName '0.8'
+        versionCode 9
+        versionName '0.9'
     }
-
     buildTypes {
-        debug {
-            signingConfig signingConfigs.guide
-        }
+        debug { signingConfig signingConfigs.guide }
         release {
             signingConfig signingConfigs.guide
             minifyEnabled false
