@@ -14,6 +14,22 @@ ZOMBIE_DATA.bo2_mob.steps[3].title='猎犬斧、五个骷髅与勺子';
 ZOMBIE_DATA.bo2_origins.steps[0].title='制作并升级四把法杖';
 ZOMBIE_DATA.bo3_origins.steps[0].title='制作并升级四把法杖';
 """+s
+old='const imgZH=p=>p.isPlan?{title:p.title,where:p.title,action:p.note,heading:"社区地图"}:ZhDisplay.info(state.map,p,state.showEnglishNames!==false);'
+assert old in s
+s=s.replace(old,"""const imgZH=p=>{
+ if(p.isPlan)return {title:p.title,where:p.title,action:p.note,heading:'社区地图'};
+ const base=ZhDisplay.info(state.map,p,state.showEnglishNames!==false);
+ const guideKey=M.maps[state.map]?.guide,doc=window.OFFLINE_GUIDES?.docs[guideKey];
+ if(!doc)return base;
+ for(const [sid,starts]of Object.entries(window.MICRO_PHOTO_FOCUS||{})){
+  const section=doc.sections[sid];if(!section||!section.images.includes(p.index))continue;
+  const points=starts.map((image,paragraph)=>({image,paragraph})).filter(x=>Number.isInteger(x.image)).sort((a,b)=>a.image-b.image);
+  let chosen=points[0];for(const point of points)if(point.image<=p.index)chosen=point;
+  if(chosen&&section.texts[chosen.paragraph])base.action=zh(section.texts[chosen.paragraph]);
+  break;
+ }
+ return base;
+};""")
 s=s.replace('function stepPhotos(){','function legacyStepPhotos(){',1).replace('function renderStep(){','function legacyRenderStep(){',1)
 i=s.index('function next(){');j=s.index('function showModal(',i);s=s[:i]+s[j:]
 i=s.index('function currentSections(');j=s.index('function openAtlas(',i);s=s[:i]+(R/'reader.js').read_text()+'\n'+s[j:]
