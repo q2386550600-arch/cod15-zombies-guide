@@ -13,6 +13,32 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Validate JavaScript and guide registry
+        run: |
+          node --check app/src/main/assets/data.js
+          node --check app/src/main/assets/bo1-data.js
+          node --check app/src/main/assets/bo2-data.js
+          node --check app/src/main/assets/bo3-data.js
+          node --check app/src/main/assets/games.js
+          node --check app/src/main/assets/app.js
+          node <<'NODE'
+          const fs=require('fs');
+          global.window={};
+          const base='app/src/main/assets/';
+          for(const f of ['data.js','bo1-data.js','bo2-data.js','bo3-data.js','games.js']) eval(fs.readFileSync(base+f,'utf8'));
+          const games=window.ZOMBIE_GAMES;
+          const data=window.ZOMBIE_DATA;
+          const expected={bo1:10,bo2:9,bo3:14,bo4:8};
+          for(const [g,n] of Object.entries(expected)){
+            if(!games[g]||games[g].maps.length!==n) throw new Error(`${g} expected ${n} maps, got ${games[g]?.maps.length}`);
+            for(const k of games[g].maps){
+              if(!data[k]) throw new Error(`missing map ${k}`);
+              if(!Array.isArray(data[k].steps)||!data[k].steps.length) throw new Error(`map ${k} has no steps`);
+            }
+          }
+          if(Object.keys(data).length!==41) throw new Error(`expected 41 maps, got ${Object.keys(data).length}`);
+          console.log('Guide registry OK: 41 maps across COD7/COD9/COD12/COD15');
+          NODE
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -25,6 +51,8 @@ jobs:
         run: base64 -d signing-key.b64 > debug-signing.jks
       - name: Build debug APK
         run: gradle :app:assembleDebug
+      - name: Verify APK signature
+        run: /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
       - uses: actions/upload-artifact@v4
         with:
           name: COD-Zombies-Guide-v0.8
