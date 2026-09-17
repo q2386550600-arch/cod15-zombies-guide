@@ -1,0 +1,51 @@
+name: Android 16 installation and launch test
+on:
+  workflow_run:
+    workflows: ['Build focused Android guide v0.9']
+    types: [completed]
+    branches: [main]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  smoke:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.9
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Enable emulator hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install and exercise APK on API 36
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          disable-animations: true
+          script: python tests/smoke_android.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0.9-Android16-runtime-test
+          path: android-test-results/
+          retention-days: 14
+          if-no-files-found: warn
