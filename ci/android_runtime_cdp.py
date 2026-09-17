@@ -1,15 +1,14 @@
-"""Test the unchanged, compiled APK using native taps plus live WebView inspection.
+"""Exercise the unchanged APK on Android 16 using adb taps and live DOM checks.
 
-The API 36 image exposes WebView as one accessibility node. CDP is used only
-for locating controls and reading state; navigation is exercised by adb taps.
+Bounds come from WebView's DevTools target description (Chromium
+AwDevToolsManagerDelegate::GetTargetDescription). No accessibility XML dump
+or guessed screen offsets are required.
 """
 import hashlib
 import json
-import re
 import subprocess
 import time
 import urllib.request
-import xml.etree.ElementTree as ET
 from pathlib import Path
 import websocket
 
@@ -36,17 +35,19 @@ class DevicePage:
                 with urllib.request.urlopen('http://127.0.0.1:9222/json',timeout=4) as response:
                     pages=json.load(response)
                 target=next(p for p in pages if 'android_asset/index.html' in p.get('url',''))
+                desc=target.get('description',{})
+                if isinstance(desc,str):desc=json.loads(desc)
+                if not desc.get('width') or not desc.get('height'):
+                    raise ValueError('WebView has not reported a visible nonempty screen rect')
                 self.ws=websocket.create_connection(target['webSocketDebuggerUrl'],timeout=20,suppress_origin=True)
                 self.target=target
+                x,y=desc['screenX'],desc['screenY']
+                self.bounds=[x,y,x+desc['width'],y+desc['height']]
+                (OUT/'webview-target.json').write_text(json.dumps(target,ensure_ascii=False,indent=2))
                 break
             except Exception as exc:
                 last=str(exc);time.sleep(.5)
         if self.ws is None:raise AssertionError('Live WebView inspection unavailable: '+last)
-        adb('shell','uiautomator','dump','/sdcard/guide-ui.xml')
-        xml=adb('shell','cat','/sdcard/guide-ui.xml')
-        (OUT/'native-hierarchy.xml').write_text(xml)
-        node=next(n for n in ET.fromstring(xml).iter('node') if n.get('class')=='android.webkit.WebView')
-        self.bounds=list(map(int,re.findall(r'\d+',node.get('bounds',''))))
 
     def call(self,method,params):
         self.counter+=1;ident=self.counter
