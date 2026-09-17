@@ -1,0 +1,159 @@
+name: Offline detailed Chinese guide v0.13
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v013/**', '.github/workflows/detail-v013.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: detail-v013-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.12
+          run-id: 35261833765
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: original-community-source-pack
+          run-id: 35232916091
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .source
+      - name: Restore tested source and all unchanged original images
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('.base/v012-generated-sources.zip') as z:
+              for n in z.namelist():
+                  p=Path(n)
+                  if p.is_absolute() or '..' in p.parts:raise ValueError('Unsafe source path')
+                  if n.startswith('app/src/') or n=='app/build.gradle':
+                      p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          with zipfile.ZipFile('.base/COD_Zombies_Guide_v0.12.apk') as z:
+              for n in z.namelist():
+                  if n.startswith(('assets/images/','assets/atlas/')) and not n.endswith('/'):
+                      if '..' in Path(n).parts:raise ValueError('Unsafe media path')
+                      p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          PY
+      - name: Compile paragraph content and micro-step bindings
+        run: |
+          node updates/v013/export.js app/src/main/assets updates/v013/export.json
+          python updates/v013/generate.py --assets app/src/main/assets --source .source
+          python updates/v013/apply.py --root .
+          for f in app/src/main/assets/*.js; do node --check "$f"; done
+      - name: Install browser regression dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Exercise all local paragraphs, branches, microsteps and image gestures
+        run: python updates/v013/test_detail.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compile Android with unchanged signing identity
+        run: |
+          SDKMANAGER="/usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager"
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
+          base64 -d signing-key.b64 > debug-signing.jks
+          gradle :app:assembleDebug --stacktrace
+      - name: Verify package, certificate and unchanged media
+        run: |
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk output/COD_Zombies_Guide_v0.13.apk
+          SIGNER="/usr/local/lib/android/sdk/build-tools/35.0.0/apksigner"
+          "$SIGNER" verify --verbose --print-certs output/COD_Zombies_Guide_v0.13.apk | tee output/signature.txt
+          "$SIGNER" verify --print-certs .base/COD_Zombies_Guide_v0.12.apk > output/previous-signature.txt
+          sha256sum output/COD_Zombies_Guide_v0.13.apk > output/SHA256SUMS.txt
+          cp app/src/main/assets/offline-audit.json test-results/detail-tests.json output/
+          python - <<'PY'
+          import zipfile,json,re
+          from pathlib import Path
+          pat=r'Signer #1 certificate SHA-256 digest: (\w+)'
+          assert re.search(pat,Path('output/signature.txt').read_text()).group(1)==re.search(pat,Path('output/previous-signature.txt').read_text()).group(1)
+          with zipfile.ZipFile('.base/COD_Zombies_Guide_v0.12.apk') as a,zipfile.ZipFile('output/COD_Zombies_Guide_v0.13.apk') as b:
+              assert b.testzip() is None
+              media=[n for n in a.namelist() if n.startswith(('assets/images/','assets/atlas/')) and not n.endswith('/')]
+              assert len(media)==1282
+              assert all(a.read(n)==b.read(n) for n in media)
+              assert 'offline-guides.js' in b.read('assets/index.html').decode()
+          Path('output/media-verification.json').write_text(json.dumps({'unchangedOriginalScreenshots':1148,'unchangedOriginalPlans':134,'zipIntegrity':True,'sameCertificate':True}))
+          with zipfile.ZipFile('output/v013-generated-sources.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in list(Path('app/src').rglob('*'))+[Path('app/build.gradle')]:
+                  if p.is_file() and '/images/' not in str(p) and '/atlas/' not in str(p):z.write(p,str(p))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.13
+          path: output/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0.13-browser-tests
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: warn
+  android:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.13
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.12
+          run-id: 35261833765
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - run: python -m pip install websocket-client==1.8.0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Enable hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify in-place upgrade and native detailed tutorial
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          disable-animations: true
+          script: python updates/v013/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0.13-Android16-verification
+          path: android-test-results/
+          retention-days: 14
+          if-no-files-found: warn
