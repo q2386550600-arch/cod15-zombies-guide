@@ -1,0 +1,92 @@
+name: Prepare original community images
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/source-assets.yml']
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: PlagueFPS/cod-zombies
+          ref: 575948e073432d59019ee030db2201e0a8157efb
+          path: upstream
+          persist-credentials: false
+          sparse-checkout: |
+            src/content/main-quests
+            src/content/side-quests
+            src/data
+            src/map-configs
+      - run: python -m pip install pillow requests
+      - name: Collect original captions and image files
+        run: |
+          python - <<'PY'
+          import re,json,hashlib,concurrent.futures,time,shutil
+          from pathlib import Path
+          from urllib.parse import quote
+          import requests
+          from PIL import Image,ImageOps,ImageDraw
+          base=Path('upstream'); out=Path('source-pack'); out.mkdir(exist_ok=True)
+          media=Path('community-media');media.mkdir(exist_ok=True)
+          main=base/'src/content/main-quests'
+          names='abandon-ship apocalypse-averted casimir-mechanism classified electromagnetic-awakening-party ensemble-cast for-the-good-of-all greek-tragedy high-maintenance little-lost-girl love-and-war mined-games most-escape-alive my-brothers-keeper pop-goes-the-weasel richtofens-grand-scheme salvation-lies-above seeds-of-doubt stand-in time-travel-will-tell tower-of-babble trial-by-ordeal venerated-warrior'.split()
+          files=[p for p in main.glob('*.mdx') if p.stem in names]
+          missing=[s for s in names if not (main/(s+'.mdx')).exists()]
+          print('missing titles',missing)
+          catalog=[]; refs={}
+          for p in files:
+              text=p.read_text();q=out/'articles'/p.name;q.parent.mkdir(exist_ok=True);q.write_text(text)
+              imgs=[]
+              for i,m in enumerate(re.finditer(r'<RichImage\b[\s\S]*?/\s*>',text)):
+                  at={k:v for k,_,v in re.findall(r'(image|caption|alt)\s*=\s*([\x22\x27])(.*?)\2',m.group(),re.S)}
+                  path=at.get('image','');
+                  if not path:raise ValueError('Unparsed image '+p.name+':'+m.group())
+                  heads=re.findall(r'^(#{1,5})\s+(.+)$',text[:m.start()],re.M)
+                  ident=hashlib.sha256(path.encode()).hexdigest()[:20]+Path(path).suffix
+                  entry={'source_path':path,'file':'images/'+ident,'caption':at.get('caption',at.get('alt','')),'offset':m.start(),'line':text.count('\n',0,m.start())+1,'last_heading':heads[-1][1] if heads else '', 'index':i}
+                  imgs.append(entry);refs[path]=ident
+              catalog.append({'key':p.stem,'filename':p.name,'images':imgs,'sha256':hashlib.sha256(text.encode()).hexdigest()})
+          for folder in ['src/content/side-quests','src/data','src/map-configs']:
+              dest=out/folder.replace('/','_');shutil.copytree(base/folder,dest,dirs_exist_ok=True)
+          raw='https://raw.githubusercontent.com/PlagueFPS/cod-zombies/575948e073432d59019ee030db2201e0a8157efb/public'
+          def download(item):
+              path,ident=item; err=''
+              for attempt in range(3):
+                  try:
+                      r=requests.get(raw+quote(path,safe='/'),timeout=60);r.raise_for_status()
+                      f=media/'images'/ident;f.parent.mkdir(exist_ok=True);f.write_bytes(r.content)
+                      with Image.open(f) as im: im.verify()
+                      with Image.open(f) as im: size=im.size
+                      return path,{'file':'images/'+ident,'sha256':hashlib.sha256(r.content).hexdigest(),'bytes':len(r.content),'width':size[0],'height':size[1]}
+                  except Exception as e:err=str(e);time.sleep(1+attempt)
+              return path,{'error':err}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:results=dict(pool.map(download,refs.items()))
+          (out/'catalog.json').write_text(json.dumps({'source_commit':'575948e073432d59019ee030db2201e0a8157efb','missing_titles':missing,'guides':catalog,'media':results},ensure_ascii=False,indent=2))
+          sheets=out/'contact-sheets';sheets.mkdir(exist_ok=True)
+          for doc in catalog:
+              valid=[x for x in doc['images'] if not results[x['source_path']].get('error')]
+              for start in range(0,len(valid),24):
+                  batch=valid[start:start+24];sheet=Image.new('RGB',(1280,((len(batch)+3)//4)*208),'#111111');d=ImageDraw.Draw(sheet)
+                  for j,item in enumerate(batch):
+                      im=Image.open(media/item['file']).convert('RGB');im.thumbnail((312,176));x=j%4*320;y=j//4*208;sheet.paste(im,(x,y));d.text((x+3,y+177),str(item['index'])+' '+item['caption'][:47],fill='white')
+                  sheet.save(sheets/(doc['key']+'-'+str(start)+'.jpg'),quality=85)
+          print('Guides',len(catalog),'references',sum(len(x['images']) for x in catalog),'unique',len(refs),'downloaded',sum('error' not in v for v in results.values()))
+          for p,v in results.items():
+              if 'error' in v:print('FAILED',p,v)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-community-source-pack
+          path: source-pack/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: original-community-images
+          path: community-media/
+          compression-level: 0
+          retention-days: 7
