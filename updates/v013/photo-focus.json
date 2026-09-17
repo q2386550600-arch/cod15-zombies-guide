@@ -1,0 +1,23 @@
+{
+  "little-lost-girl-3": [0,3],
+  "little-lost-girl-4": [4,6,9],
+  "little-lost-girl-5": [13,16,19],
+  "little-lost-girl-6": [23,25,29,32],
+  "little-lost-girl-7": [36,40,43],
+  "little-lost-girl-8": [47,49,null],
+  "little-lost-girl-9": [54,55,null],
+  "little-lost-girl-10": [58,60,null],
+  "little-lost-girl-11": [61,62,null],
+  "little-lost-girl-12": [64,66,null],
+  "little-lost-girl-15": [72,73,null,74],
+  "little-lost-girl-18": [77,null],
+  "little-lost-girl-22": [90,90],
+  "my-brothers-keeper-5": [4,5,9,13],
+  "my-brothers-keeper-6": [14,16,21,22,25],
+  "my-brothers-keeper-7": [27,35,39,40],
+  "my-brothers-keeper-8": [42,44,50,51,52],
+  "my-brothers-keeper-11": [58,59,67,68,71],
+  "my-brothers-keeper-12": [74,75,78],
+  "my-brothers-keeper-14": [81,84,84,89],
+  "my-brothers-keeper-16": [90,91,92]
+}

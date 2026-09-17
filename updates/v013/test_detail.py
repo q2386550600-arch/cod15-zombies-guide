@@ -49,12 +49,15 @@ try:
   page.click('#backOverview');report['checks'].append('All five Blood challenges must be individually marked; completing one cannot skip the other four')
   page.evaluate('GuideDebug.goMap("bo3_gorod")');page.click('#start');page.evaluate('GuideDebug.openValve()');page.select_option('#valveFrom','Armory');page.select_option('#valveTo','Tank Factory');assert page.locator('.valveRow').count()==6;assert page.locator('.valveRow b').all_text_contents()==['3','3','2','3','1','不要转动（圆筒）'];page.screenshot(path=str(OUT/'offline-valves.png'));page.select_option('#valveTo','Armory');assert '不能是同一处' in page.locator('#valveAnswer').inner_text();page.click('#closeModal');page.click('#backOverview')
   report['checks'].append('Offline valve lookup rejects identical endpoints and preserves choices; all 30 source combinations pass data validation')
-  page.evaluate('GuideDebug.goMap("bo2_origins")');page.click('#start');page.evaluate('GuideDebug.openSourceSection("little-lost-girl-15")');assert page.locator('.completeText li').count()==4;page.screenshot(path=str(OUT/'g-strike-details.png'));page.click('#readerCurrent')
-  # Earlier traversal intentionally leaves this map on its final stage. Select
-  # the preparation stage through the normal UI before testing its sixth item.
+  page.evaluate('GuideDebug.goMap("bo2_origins")');page.click('#start');page.evaluate('GuideDebug.openSourceSection("little-lost-girl-15")');assert page.locator('.completeText li').count()==4;page.wait_for_timeout(2800);page.screenshot(path=str(OUT/'g-strike-details.png'));page.click('#readerCurrent')
+  # Earlier traversal intentionally leaves this map on its final stage.
   page.click('#openIndex');page.locator('#modalBody .previewItem').first.click();assert page.evaluate('GuideDebug.getState().step')==0
-  page.evaluate('GuideDebug.openDetailIndex()');page.locator('#modalBody .detailJump').nth(5).click();assert page.evaluate('GuideDebug.detailPos()')==5;page.screenshot(path=str(OUT/'micro-step.png'));page.click('#backOverview')
-  report['checks'].append('Detailed preparation can be revisited after the last stage without discarding saved progress')
+  page.evaluate('GuideDebug.openDetailIndex()');page.locator('#modalBody .detailJump').nth(5).click();assert page.evaluate('GuideDebug.detailPos()')==5
+  assert page.locator('#stepTitle').inner_text()=='风唱片';image(page,'#stepPhoto')
+  assert page.locator('#stepPhoto').get_attribute('src')==page.evaluate('COMMUNITY_MEDIA.guides["little-lost-girl"].images[6].file')
+  assert page.evaluate('GuideDebug.currentPhotos().length')==9
+  page.screenshot(path=str(OUT/'micro-step.png'));page.locator('#photoSection').scroll_into_view_if_needed();page.screenshot(path=str(OUT/'matched-disc-photo.png'));page.click('#backOverview')
+  report['checks'].append('Revisited preparation keeps progress and starts the wind-disc task on its actual disc photo; all nine section references remain available')
   page.evaluate('GuideDebug.goMap("bo2_buried")');page.click('#galleryOverview');page.locator('.thumb').nth(4).click();image(page,'#fullImage');before=page.locator('#viewerNumber').inner_text()
   page.locator('#fullAction').evaluate('''e=>{const t=new Touch({identifier:1,target:e,clientX:320,clientY:300});e.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,touches:[t]}));e.dispatchEvent(new TouchEvent('touchend',{bubbles:true,changedTouches:[new Touch({identifier:1,target:e,clientX:100,clientY:300})]}));}''');assert page.locator('#viewerNumber').inner_text()!=before;page.click('#closeModal');page.click('#closeModal')
   report['checks'].append('Original images decode; swipes in explanation text still switch photos')
