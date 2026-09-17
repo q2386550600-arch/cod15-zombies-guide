@@ -1,5 +1,5 @@
 from pathlib import Path
-import base64, hashlib, lzma
+import base64, hashlib, lzma, runpy
 ROOT=Path(__file__).resolve().parent
 P=Path('app/src/main/assets')
 def replace(s,old,new):
@@ -36,4 +36,5 @@ s=replace(s,'href="v09.css"','href="v010.css"')
 s=replace(s,'<script src="v09.js"></script>','<script src="image-help.js"></script><script src="v010.js"></script>')
 (P/'index.html').write_text(s)
 f=Path('app/build.gradle');s=f.read_text();s=replace(s,'versionCode 9','versionCode 10');s=replace(s,"versionName '0.9'","versionName '0.10'");f.write_text(s)
+runpy.run_path(str(ROOT/'language_patch.py'),run_name='__main__')
 print('Applied v0.10; existing application ID, signing configuration and localStorage key preserved.')

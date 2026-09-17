@@ -1,0 +1,57 @@
+/* Image explanations supplement, but never replace or crop, the original images. */
+(()=>{'use strict';
+const HELP={};
+const put=(g,h,en,zh)=>{(HELP[g]??={})[h]={en,zh};};
+const groups=(g,rows)=>rows.forEach(r=>put(g,...r));
+groups('mined-games',[
+['Powering the Orbs','Find the four orbs shown in these location photos. Use the Paralyzer to turn them white, or the powered Subsurface Resonator to destroy them; then continue on your chosen route.','这四张图分别对应四个能量球。用瘫痪器把球加热至白色，或用供电后的地下共振器摧毁；完成后继续所选阵营路线。'],
+['Building the Guillotine','Pick up the pictured component and fit it to the Guillotine beside the Saloon. This is the Richtofen route; do not put the shared parts on the Gallows.','捡起图中零件，装到酒馆旁的断头台。这是里希托芬路线；共用零件不要错装到绞刑架。'],
+['Acquiring the Lantern (Richtofen Side)','Use an explosion to knock down the floating lantern, pick it up, and charge it by killing ghosts inside the mansion. Put the charged lantern on the Gunsmith roof symbol.','用爆炸击落飘浮灯笼并捡起，在宅邸内杀幽灵充能，再放到枪械店屋顶的符号上。'],
+['Wisp Step (Richtofen Side)','Decode the three mine signs and strike them with Galvaknuckles or the Bowie Knife. With Vulture Aid, touch the wisp at each stop to lead it to the Guillotine; then feed it glowing zombies.','解出三个矿井路牌，用电拳套或鲍伊猎刀近战敲击。带秃鹫援助追随光点，触碰它使其到达断头台，再击杀被它点亮的僵尸充能。'],
+['Maze Step','Identify your maze layout, then record the order of the four colored switches. Sparks appear after all four are flipped and indicate correct positions in the sequence; do not copy a fixed order from an example.','对照当局迷宫布局，记录四个彩色开关的尝试顺序。四个都拨完才会闪电花，表示该开关处在正确序位；不要照抄示例顺序。'],
+['Building the Gallows','Pick up this component for the Gallows beside the Courthouse entrance. This is the Maxis route; do not put shared parts on the Guillotine.','捡起该零件，装到法院入口旁的绞刑架。这是麦克西斯路线；共用零件不要装到断头台。'],
+['Acquiring the Lantern (Maxis Side)','Let Maxis finish speaking, then knock down and collect the lantern. Charge it with nearby zombie kills from Arthur, traps, or a Nuke, and place it on the Gunsmith roof symbol.','等麦克西斯说完再击落、捡灯笼。持灯笼者靠近僵尸，用亚瑟、陷阱或核弹击杀充能，再放到枪械店屋顶符号上。'],
+['Wisp Step (Maxis Side)','Place a Time Bomb before striking the final decoded sign. Escort the wisp to the Gallows, rewind with the bomb, and escort it again. Keep zombies along its route to sustain it.','敲最后一个解码路牌前先放时间炸弹。带光点到绞刑架，用炸弹回溯，再护送一次；沿途保留僵尸供光点续能。'],
+['Bell Step','The mansion switchboard calls the bell sequence. Left column: Candy Store; middle: Barn; right: Courthouse. Assign one player to read the lights and the other three to ring the matching bells.','宅邸控制板提示敲铃顺序。左列是糖果店，中列是谷仓，右列是法院。一个人报灯，另外三人到对应位置敲铃。'],
+['Final Step (Both Sides)','Interact with the fountain to start the sharpshooter challenge. Cover all four target areas and shoot every cowboy target before it disappears. Interact with the fountain again to retry after a failure.','与喷泉互动开始打靶。分守四个刷靶区域，在靶子消失前全部打中；失败可再次互动喷泉重试。']]);
+const BURIED=[
+['Orb between the Candy Store and Saloon','Between the Candy Store and the Saloon','糖果店和酒馆之间的能量球','糖果店与酒馆之间'],
+['Orb in the church graveyard','Graveyard to the left of the Church','教堂墓地的能量球','教堂左侧墓地'],
+['Orb near Lunger Undermines','Near the Lunger Undermines sign in the mines','矿井路牌附近的能量球','矿井 Lunger Undermines 路牌附近'],
+['Orb behind the mansion','Behind the Witches\' Mansion','宅邸后方的能量球','女巫宅邸后方'],
+['Satellite Dish — Guillotine component','Upper balcony of the Saloon','卫星碟：断头台零件','酒馆上层阳台'],
+['Spool of Wire — Guillotine component','Corner of the Gunsmith','线圈：断头台零件','枪械店角落'],
+['Crystal — Guillotine component','Near Lunger Undermines','水晶：断头台零件','Lunger Undermines 矿道附近'],
+['Antenna — Guillotine component','Ground floor of the Barn, far stall on the right','天线：断头台零件','谷仓底层，右侧深处的隔间'],
+['Floating Ghost Lantern — Richtofen route','Floating above town near the mansion','飘浮的幽灵灯笼：里希托芬路线','宅邸附近城镇上空'],
+['Lantern placement symbol — Richtofen route','On top of the Gunsmith roof','灯笼放置符号：里希托芬路线','枪械店屋顶'],
+['Cipher key for the mine signs','Compare this chart with the cipher revealed by the lantern','矿井路牌密码对照表','对照灯笼显示的密码，不是去寻找这张表'],
+['Richtofen wisp','From the mine signs toward the Guillotine','里希托芬路线的灵魂光点','从矿井路牌引往断头台'],
+['Zombie charged by the wisp','Near the wisp at the Guillotine','被光点充能的僵尸','断头台光点附近'],
+['Maze variants and colored switch positions','Maze behind the mansion; choose the layout matching this match','迷宫变体与彩色开关位置图','宅邸后方迷宫，选与你这局相同的布局'],
+['Battery — Gallows component','Behind the Church podium','电池：绞刑架零件','教堂讲台后方'],
+['Spool of Wire — Gallows component','Corner of the Gunsmith','线圈：绞刑架零件','枪械店角落'],
+['Bulbs — Gallows component','Above the Jail Cell','灯泡：绞刑架零件','牢房上方'],
+['Antenna — Gallows component','Ground floor of the Barn, far stall on the right','天线：绞刑架零件','谷仓底层，右侧深处的隔间'],
+['Floating Ghost Lantern — Maxis route','Floating above town near the mansion','飘浮的幽灵灯笼：麦克西斯路线','宅邸附近城镇上空'],
+['Lantern placement symbol — Maxis route','On top of the Gunsmith roof','灯笼放置符号：麦克西斯路线','枪械店屋顶'],
+['Cipher key — Maxis route','Compare with the cipher revealed on the Gunsmith roof','密码对照表：麦克西斯路线','对照枪械店屋顶显示的密码'],
+['Maxis wisp','Along its route from the mine signs to the Gallows','麦克西斯路线的灵魂光点','由矿井路牌前往绞刑架的路径'],
+['Bell switchboard','On a couch in the mansion room beyond the secret bookshelf','铃铛控制板','宅邸秘密书架后房间的沙发上'],
+['Sharpshooter challenge fountain','Outside the Church and the mansion','打靶挑战喷泉','教堂与宅邸外的喷泉'],
+['Cowboy target','One of the four sharpshooter target areas','牛仔靶子','打靶挑战四个区域之一']];
+const TERMS={...window.COMMUNITY_MEDIA.placeNames,'Satellite Dish':'卫星碟','Saloon':'酒馆','Gunsmith':'枪械店','Candy Store':'糖果店','Guillotine':'断头台','Gallows':'绞刑架','Spool of Wire':'线圈','Antennae':'天线','Antenna':'天线','Bulbs':'灯泡','Battery':'电池','Barn':'谷仓','Courthouse':'法院','Courtroom':'法庭','Jail Cell':'牢房','Ghost Mansion':'幽灵宅邸',"Witches' Mansion":'女巫宅邸','Paralyzer':'瘫痪器','Subsurface Resonator':'地下共振器','Time Bomb':'时间炸弹','Galvaknuckles':'电拳套','Bowie Knife':'鲍伊猎刀','Vulture Aid':'秃鹫援助','Richtofen':'里希托芬','Maxis':'麦克西斯','Wisp':'灵魂光点','Lantern':'灯笼','Cipher':'密码','Maze':'迷宫','Switchboard':'控制板','Bell':'铃铛','Arthur':'亚瑟','Nuke':'核弹','Orb':'能量球','Soul':'灵魂','Fuse':'保险丝','Golden Rod':'金杖','Gersh Device':'格什装置','Summoning Key':'召唤之钥','Gateworm':'门虫','Keeper':'守护者','Telepad':'传送板','Brain Rot':'脑腐','Nova':'诺瓦爬行怪','Avogadro':'电人','Seal of Duality':'二元印记','Soapstone':'皂石','Samantha\'s Music Box':'萨曼莎音乐盒','Elemental Shard':'元素碎片','Dynamite':'炸药','Agarthan Device':'阿加森装置','Pack-a-Punch':'武器强化机','Distillation Kit':'蒸馏套件','Sentinel Artifact':'哨兵神器'};
+const enEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const termRE=new RegExp('(?<![A-Za-z])('+Object.keys(TERMS).sort((a,b)=>b.length-a.length).map(enEsc).join('|')+')(?![A-Za-z])','gi');
+const lower=Object.fromEntries(Object.entries(TERMS).map(([k,v])=>[k.toLowerCase(),v]));
+function gloss(text){return String(text).replace(termRE,(s,_,offset,whole)=>whole.slice(offset+s.length).trimStart().startsWith('（')?s:s+'（'+lower[s.toLowerCase()]+'）');}
+groups('casimir-mechanism',[
+['Power Generator Step','Throw a Gersh Device near the pictured generator to draw it into the portal, then activate the terminal.','把格什装置扔在图中发电机附近吸走发电机，再启动终端。'],['Buttons Step','During a monkey round, coordinate all four players to press the four pictured buttons together.','猴子回合时，四名玩家同步按下四个按钮。'],['Clock Step','Gather on the pressure plate and wait for the clock sequence without leaving the plate.','全队站在压力板上，等待时钟流程，不要离开。'],['Letter Step','Use the lunar lander route to collect the letters for LUNA. These pictures identify the letters and their positions.','按登月平台路线收集 LUNA 字母，配图用于辨认字母和位置。'],['Final Step','Use a Gersh portal and the required weapons on the glowing orb to free Gersh.','在发光球体处用格什传送门配合任务武器完成释放格什的阶段。']]);
+groups('ensemble-cast',[
+['Fuse Step','Find the fuse upstairs and insert it beside the locked room. Knock on the door to continue the dialogue.','在楼上找到保险丝，装到上锁房间旁，与门互动继续对话。'],['Generator Step','Destroy all four red-lit generators with explosions. The pictures show their locations.','用爆炸摧毁四台亮红灯的发电机，按配图逐个找。'],['Vodka Step','Locate the vodka bottle. One player knocks it down while another catches it below; deliver it to the locked room.','找伏特加瓶，一人在上方打落，另一人在下方接住，再交给上锁房间。'],['Radios Step','Activate the four radios in the quest order. Match each radio to its numbered location before starting.','按任务规定顺序启动四台收音机，先核对图中各台的位置。'],['Lever Step','Set the ship controls as required for the light-beam stage. This is the control-panel reference, not a collectible.','按光束阶段要求设置船只操纵装置；这是机关对照图，不是收集品。'],['Foghorn Step','Use the four foghorns in the required sequence. The images distinguish their locations.','按规定顺序使用四个雾号，用图片区分位置。'],['Dial Step','Set the lighthouse dials to the puzzle solution; changing one dial can move another.','设置灯塔转盘，注意一个转盘可能联动另一个。'],['Golden Rod Step','Turn a zombie into a human with the V-R11 and send it into the lighthouse beam to obtain the Golden Rod.','用 V-R11 将僵尸变成人，送入灯塔光束，取得金杖。'],['Final Step','Deliver the Golden Rod, then finish the fuse and door interactions to complete the quest.','交出金杖，再完成保险丝与门口的最后互动。']]);
+groups('time-travel-will-tell',[
+['Triggering an Eclipse','All four players press the eclipse buttons together to enter the past.','四人同步按日食按钮，进入过去。'],['Tiles Step','Match the floor symbols between the two sides; communicate the symbol before stepping on its pair.','两侧玩家配对地面符号，先报出图案再踩对应那块。'],['Crystal Step','Use the Shrink Ray and the map mechanisms to move the crystal through this stage.','用缩小枪及地图机关推动水晶完成本阶段。'],['Gas Step','Lure a Napalm Zombie along the gas-pipe route to ignite the leaks.','沿管道路线引燃烧僵尸点燃漏气处。'],['Holes Step','Use Spikemore explosions to plug the wall holes, then activate the slab.','用阔剑地雷爆炸封住墙孔，再互动石板。'],['Panels Step','Find and activate the symbol panels shown here before continuing the crystal sequence.','逐个寻找并激活图中符号面板，再继续水晶步骤。'],['Wheel Step','Turn the wheels to the required symbols; these are orientation references.','把转轮调到任务要求的符号，配图用于辨认朝向。'],['Gong Step','Identify the correct gongs and use them with the crystal sequence. Wrong gongs change the crystal feedback.','找出正确铜锣并配合水晶步骤使用；敲错会改变水晶反馈。'],['Final Step','Open the route to the focusing stone and collect it. Repeat the quest cycle for additional players if needed.','打开聚焦石路线并领取；其他玩家也要奖励时，再重复任务循环。']]);
+groups('richtofens-grand-scheme',[
+['Simon says','Watch the flashing screens and reproduce the same sequence. Do not copy a previous match\'s sequence.','观察闪屏顺序并照按，不要照抄别人的顺序。'],['Hacking in the Laboratory','Use the Hacker on the correct laboratory panels, then activate the four wall buttons.','用骇客装置处理实验室面板，再完成四个墙面按钮。'],['Obtaining the Vril sphere','Wait for Excavator Pi to breach Tunnel 6, stop it, and guide the Vril sphere through the map.','等 Pi 挖掘机切入六号隧道后停机，再把 Vril 球推向目标位置。'],['Opening the M.P.D.','Fill the soul container beside the pyramid, then use the adjacent switch.','给金字塔旁灵魂罐充满，再使用旁边开关。'],['Acquiring the Hexagonal Plates','Move the plates from Area 51 back to the Moon and onto the computer position.','把 51 区的六角板带回月球，移到电脑处。'],['Acquiring the "S" shaped cable','Pick up the S-shaped cable in the laboratory and connect the computer setup to charge the Vril Device.','在实验室找 S 形电缆，接好电脑装置，为 Vril 装置充能。'],['Switching souls','Complete the pyramid soul-container stage and perform the soul exchange.','完成金字塔灵魂罐充能及灵魂交换。'],["Maxis' Revenge",'Complete the final memory and sphere sequence to launch the rockets. BO1 and BO3 have different quest prerequisites.','完成最后的记忆游戏和球体步骤，发射火箭；BO1 与 BO3 前置条件不同。']]);
+window.IMAGE_HELP_DATA={HELP,BURIED,TERMS,put,groups,gloss};
+})();
