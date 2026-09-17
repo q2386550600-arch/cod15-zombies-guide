@@ -13,6 +13,9 @@ assert len(contents)==22
 for k,v in B['EXTRA'].items():contents[k].update(v)
 contents['mined-games'][2][1]=contents['mined-games'][2][1].replace('在断头台装好、对应语音进入此阶段后，','')
 contents['salvation-lies-above'][40]=[x.replace('範火','篝火') for x in contents['salvation-lies-above'][40]]
+# The hand-carry restriction follows the final candidate image in the source;
+# surface it before any recipe, not as an invisible tail of a location caption.
+contents['greek-tragedy'][10].append('每只手单独制作：每做下一只救赎之手都要再取一只沉睡之手，一次只能推进一只。已经持有救赎之手时，先把它放回对应神龛，再取新的沉睡之手开始另一条制作路线。')
 docs={};audit={'guides':{},'scope':'Chinese procedural adaptation of 22 main-quest sources, plus explicitly cited preparation. Not a verbatim publisher translation; recommended loadout tables, lore, credits and embedded videos are references, not counted as mandatory procedures.'}
 for key,src in E['source']['guides'].items():
  sections={};procedures=contents[key];images=E['media']['guides'][key]['images'];zh=E['captions'][key]
