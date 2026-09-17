@@ -1,0 +1,75 @@
+name: Collect community atlas v012
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/map-source-complete-v012.yml']
+permissions:
+  contents: read
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - run: python -m pip install requests pillow beautifulsoup4
+      - name: Collect source articles and original diagrams
+        run: |
+          python - <<'PY'
+          import requests,json,re,hashlib,concurrent.futures,time
+          from pathlib import Path
+          from urllib.parse import unquote,urljoin
+          from bs4 import BeautifulSoup
+          from PIL import Image,ImageDraw
+          out=Path('atlas-review');out.mkdir();(out/'images').mkdir();(out/'sheets').mkdir()
+          names={'bo2_buried':['buried'],'bo2_origins':['origins'],'bo2_mob':['mob of the dead'],'bo2_dierise':['die rise'],'bo2_tranzit':['tranzit','tran zit'],'bo3_shadows':['shadows of evil'],'bo3_de':['der eisendrache'],'bo3_zets':['zetsubou'],'bo3_gorod':['gorod'],'bo3_rev':['revelations'],'classified':['classified'],'alpha':['alpha omega'],'tag':['tag der toten'],'blood':['blood of the dead'],'dead':['dead of the night'],'ancient':['ancient evil'],'voyage':['voyage of despair'],'ix':[' ix '],'bo1_moon':['moon'],'bo1_ascension':['ascension'],'bo1_shang':['shangri'],'bo1_cotd':['call of the dead'],'bo1_kino':['kino'],'bo1_five':[' five '],'bo1_nacht':['nacht'],'bo1_verruckt':['verruckt','verrückt'],'bo1_shi':['shi no numa'],'bo1_der_riese':['der riese'],'bo3_giant':['the giant']}
+          entries=[];start=1;seen=set();pages=[]
+          for _ in range(20):
+              r=requests.get('https://codzombified.blogspot.com/feeds/posts/default',params={'alt':'json','max-results':150,'start-index':start,'published-max':'2020-01-01T00:00:00Z'},timeout=60);r.raise_for_status();feed=r.json()['feed'];batch=feed.get('entry',[])
+              pages.append({'start':start,'returned':len(batch),'total':feed.get('openSearch$totalResults')});fresh=[e for e in batch if e['id']['$t'] not in seen]
+              if not fresh:break
+              entries+=fresh;seen.update(e['id']['$t'] for e in fresh);start+=len(batch)
+              if start>int(feed['openSearch$totalResults']['$t']):break
+          docs=[];downloads={}
+          for e in entries:
+              title=e['title']['$t'];t=' '+re.sub('[^a-z0-9 ]',' ',title.lower())+' '
+              if 'layout' not in t and 'area map' not in t and 'map of' not in t:continue
+              matches=[k for k,v in names.items() if any(s in t for s in v)]
+              if not matches:continue
+              url=next(x['href'] for x in e['link'] if x['rel']=='alternate');soup=BeautifulSoup(e['content']['$t'],'html.parser');images=[]
+              for tag in soup.find_all('img'):
+                  a=tag.find_parent('a');src=a.get('href','') if a else tag.get('src','')
+                  if not src.startswith('http') or not any(h in src for h in ['blogspot.com','googleusercontent.com','imgur.com']):continue
+                  ident=hashlib.sha256(src.encode()).hexdigest()[:20];filename='images/'+ident+Path(unquote(src).split('?')[0]).suffix.lower()
+                  if not re.search(r'\.(png|jpe?g|webp|gif)$',filename):filename='images/'+ident+'.jpg'
+                  images.append({'file':filename,'url':src,'alt':tag.get('alt',''),'filename':unquote(src.split('/')[-1]),'index':len(images)});downloads[src]=filename
+              docs.append({'key':matches[0],'title':title,'sourceUrl':url,'date':e['published']['$t'],'text':soup.get_text(' ',strip=True),'images':images})
+          def get(pair):
+              url,file=pair
+              for attempt in range(3):
+                  try:
+                      r=requests.get(url,timeout=40);r.raise_for_status()
+                      (out/file).write_bytes(r.content)
+                      with Image.open(out/file) as im:im.verify()
+                      with Image.open(out/file) as im:size=im.size
+                      return url,{'file':file,'width':size[0],'height':size[1],'sha256':hashlib.sha256(r.content).hexdigest(),'bytes':len(r.content)}
+                  except Exception as e:err=str(e);time.sleep(.3)
+              return url,{'error':err}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:media=dict(pool.map(get,downloads.items()))
+          flat=[]
+          for i,d in enumerate(docs):
+              for im in d['images']:
+                  if 'error' not in media[im['url']]:flat.append((i,d,im))
+          for n in range(0,len(flat),24):
+              batch=flat[n:n+24];canvas=Image.new('RGB',(1600,((len(batch)+3)//4)*250),'#eeeeee');draw=ImageDraw.Draw(canvas)
+              for j,(i,d,im) in enumerate(batch):
+                  pic=Image.open(out/im['file']).convert('RGB');pic.thumbnail((390,214));x=j%4*400;y=j//4*250;canvas.paste(pic,(x,y));draw.text((x+2,y+215),str(i)+':'+str(im['index'])+' '+d['key']+' '+im['filename'][:26],fill='black')
+              canvas.save(out/'sheets'/f'{n:03}.jpg',quality=88)
+          (out/'catalog.json').write_text(json.dumps({'pages':pages,'articles':docs,'media':media},ensure_ascii=False,indent=2))
+          (out/'index.txt').write_text('\n'.join(str(i)+' '+d['key']+' '+d['title']+' ['+str(len(d['images']))+']' for i,d in enumerate(docs)))
+          print('pages',pages,'articles',len(docs),'images',len(media),'failures',sum('error' in x for x in media.values()))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v012-community-atlas-review
+          path: atlas-review/
+          retention-days: 30
+          compression-level: 0
