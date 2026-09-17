@@ -1,0 +1,74 @@
+name: Audit community guide media
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/media-audit.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install beautifulsoup4 requests
+      - name: Fetch guide articles and enumerate all image references
+        shell: bash
+        run: |
+          mkdir -p source-audit
+          python - <<'PY'
+          import json,re,time,hashlib,concurrent.futures
+          from pathlib import Path
+          from urllib.parse import urljoin,urlparse
+          import requests
+          from bs4 import BeautifulSoup
+          base='https://www.codzombiesguides.com'
+          out=Path('source-audit')
+          urls=set()
+          indexes={}
+          for route in ['/main-quests/','/maps/','/side-quests/']:
+              r=requests.get(base+route,timeout=45); indexes[route]=r.status_code
+              if r.ok:
+                  soup=BeautifulSoup(r.text,'html.parser')
+                  for a in soup.find_all('a',href=True):
+                      u=urljoin(base,a['href']).split('#')[0]
+                      if re.search(r'/(main-quests|maps)/black-ops-[1234]/[^/]+/?$',u):urls.add(u)
+                  (out/('index-'+route.strip('/')+'.html')).write_text(r.text,encoding='utf-8')
+          known={1:'ascension call-of-the-dead shangri-la moon',2:'tranzit die-rise mob-of-the-dead buried origins',3:'shadows-of-evil the-giant der-eisendrache zetsubou-no-shima gorod-krovi revelations ascension shangri-la moon origins',4:'ix voyage-of-despair blood-of-the-dead classified dead-of-the-night ancient-evil alpha-omega tag-der-toten'}
+          for g,names in known.items():
+              for slug in names.split():urls.add(f'{base}/main-quests/black-ops-{g}/{slug}/')
+          def grab(url):
+              try:
+                  time.sleep(.15)
+                  r=requests.get(url,timeout=50);r.raise_for_status()
+                  soup=BeautifulSoup(r.text,'html.parser')
+                  article=soup.find('article') or soup.find('main') or soup
+                  nodes=[]; heads=[]
+                  for el in article.find_all(['h1','h2','h3','h4','h5','p','li','img','iframe','video']):
+                      if el.name.startswith('h') and el.name[1:].isdigit():
+                          level=int(el.name[1]); heads=[h for h in heads if h['level']<level];heads.append({'level':level,'title':el.get_text(' ',strip=True),'id':el.get('id','')})
+                          nodes.append({'type':'heading','level':level,'text':el.get_text(' ',strip=True),'id':el.get('id','')})
+                      elif el.name=='img':
+                          fig=el.find_parent('figure'); cap=fig.find('figcaption') if fig else None
+                          anc=el.find_parent('a',href=True)
+                          nodes.append({'type':'image','attrs':dict(el.attrs),'caption':cap.get_text(' ',strip=True) if cap else el.get('alt',''),'href':anc['href'] if anc else '', 'heads':list(heads),'parent':str(el.parent)[:2000]})
+                      elif el.name in ['iframe','video']:
+                          nodes.append({'type':'video','attrs':dict(el.attrs),'heads':list(heads)})
+                      elif not (el.name=='p' and el.find_parent('li')):
+                          nodes.append({'type':'text','tag':el.name,'text':el.get_text(' ',strip=True),'heads':list(heads)})
+                  key=urlparse(url).path.strip('/').replace('/','__')
+                  (out/(key+'.html')).write_text(r.text,encoding='utf-8')
+                  links=[{'text':a.get_text(' ',strip=True),'url':urljoin(url,a['href'])} for a in article.find_all('a',href=True)]
+                  return {'url':url,'key':key,'status':r.status_code,'sha256':hashlib.sha256(r.content).hexdigest(),'title':soup.title.get_text() if soup.title else key,'nodes':nodes,'links':links}
+              except Exception as e:return {'url':url,'error':str(e)}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:docs=list(pool.map(grab,sorted(urls)))
+          (out/'catalog.json').write_text(json.dumps({'indexes':indexes,'documents':docs},ensure_ascii=False,indent=2),encoding='utf-8')
+          for doc in docs:print(doc.get('key',doc['url']),doc.get('error','OK'),len([n for n in doc.get('nodes',[]) if n['type']=='image']))
+          print('Articles:',len(docs))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: community-source-audit
+          path: source-audit/
+          retention-days: 7
+          if-no-files-found: error
