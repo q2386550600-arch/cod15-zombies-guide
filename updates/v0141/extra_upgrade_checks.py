@@ -2,6 +2,7 @@ from pathlib import Path
 p=Path('updates/v0141/native_complete.py');s=p.read_text()
 a="previous=page.evaluate('GuideDebug.getState()');page.close();page=None"
 b="""previous=page.evaluate('GuideDebug.getState()')
+ page.tap('#closeModal');page.wait('document.querySelector("#modal").hidden','The test notes modal must be closed before opening the source reader')
  page.evaluate('GuideDebug.goMap("bo2_origins")');previous=page.evaluate('GuideDebug.getState()');page.tap('#startFaithful');page.wait('!!window.FaithfulDebug && FaithfulDebug.getDoc()?.metadata.pageid===567822','Old full-source reader did not load')
  page.tap('#next');page.tap('#next');old_source_position=page.evaluate('FaithfulDebug.getState().pos');old_source_storage=page.evaluate('localStorage.getItem("cod-faithful-reader-014")');assert old_source_storage
  page.close();page=None"""
@@ -12,9 +13,7 @@ assert s.count(a)==1;s=s.replace(a,b)
 a="before=page.evaluate('FaithfulDebug.getState().pos');page.tap('#next');"
 b="before=page.evaluate('FaithfulDebug.getState().pos');assert before==old_source_position;page.tap('#next');"
 assert s.count(a)==1;s=s.replace(a,b);p.write_text(s)
-p=Path('updates/v0141/test_complete.py');s=p.read_text();a="checks.append('Whole-source Chinese coverage and review status are independently reported: 182 present, 53 reviewed, 129 drafts')"
-# Corpus structure checks already compare every translated unit with its stored source-bound value.
-# Assert the actual parsed data directly so generic machine senses cannot return unnoticed.
+p=Path('updates/v0141/test_complete.py');s=p.read_text()
 marker="  assert not errors,errors"
 extra="""  page.evaluate('FaithfulDebug.openDoc(330385)');page.wait_for_function('window.FaithfulDebug?.getDoc()?.metadata.pageid===330385')
   assert page.evaluate('FaithfulDebug.getDoc().units.find(u=>u.en==="Moon").zh')=='月球'
