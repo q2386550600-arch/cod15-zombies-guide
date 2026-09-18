@@ -1,0 +1,52 @@
+name: Complete remaining source-text drafts v0141
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v0141/make_drafts.py','.github/workflows/corpus-drafts-v0141.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: cod-v0141-source-drafts
+  cancel-in-progress: false
+jobs:
+  drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .previous
+      - name: Restore exact archived source units from previous verified build
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('.previous/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  p=Path(n)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  if n.startswith('app/src/main/assets/faithful/'):
+                      p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          PY
+      - uses: actions/cache@v4
+        with:
+          path: draft-output/translation-cache.json
+          key: cod-fulltext-drafts-source40-v1-${{ github.run_id }}
+          restore-keys: cod-fulltext-drafts-source40-v1-
+      - name: Translate all unfilled units into separately labelled drafts
+        run: python -u updates/v0141/make_drafts.py --workers 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cod-v0141-source-unit-drafts
+          path: draft-output/
+          retention-days: 30
+          if-no-files-found: error
