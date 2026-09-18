@@ -1,0 +1,84 @@
+name: Aligned full-source corpus v0.14
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v014/translate_corpus.py','updates/v014/collect_media.py','.github/workflows/corpus-v014.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-sources-with-dependencies
+          run-id: 35303555784
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: source-archive
+      - run: python -m pip install beautifulsoup4 lxml
+      - run: python updates/v014/parse_corpus.py --source source-archive --out parsed
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          path: parsed/
+          retention-days: 30
+  translate:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        shard: [0,1,2,3,4,5,6,7]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          path: parsed
+      - uses: actions/cache/restore@v4
+        with:
+          path: .models/nllb13
+          key: nllb13-30c36268408177b0fce2bfcfa205d877accd327d
+          fail-on-cache-miss: true
+      - run: python -m pip install ctranslate2==4.6.0 sentencepiece
+      - name: Translate every assigned source unit without truncation or summary
+        run: python updates/v014/translate_corpus.py --shard ${{ matrix.shard }} --shards 8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-translation-${{ matrix.shard }}
+          path: translations/
+          retention-days: 30
+          if-no-files-found: warn
+  media:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          path: parsed
+      - run: python -m pip install requests pillow
+      - run: python updates/v014/collect_media.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-wiki-media-and-rights
+          path: wiki-media/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: warn
