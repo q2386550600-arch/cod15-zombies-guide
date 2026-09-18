@@ -1,0 +1,36 @@
+name: Export restored reader checkpoint
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/resume-reader-sources.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore the completed translations and reader sources
+        run: |
+          python updates/v014/continue30/restore.py
+          python updates/v014/continue30/patch_reader.py
+          mkdir -p checkpoint
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('checkpoint/reader-source-checkpoint.zip','w',zipfile.ZIP_DEFLATED) as z:
+              files=list(Path('updates/v014').rglob('*'))+[Path('ci/android_runtime_cdp.py'),Path('build.gradle'),Path('settings.gradle'),Path('gradle.properties')]
+              for p in files:
+                  if p.is_file() and '__pycache__' not in p.parts:
+                      z.write(p,p.as_posix())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: restored-reader-source-checkpoint
+          path: checkpoint/
+          retention-days: 30
+          if-no-files-found: error
