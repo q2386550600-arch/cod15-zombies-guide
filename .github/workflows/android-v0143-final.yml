@@ -1,0 +1,66 @@
+name: Android final v0.14.3 review61
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/android-v0143-final.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/v0143/review61_tests.py
+          python updates/v014/complete/native_control_verification.py
+          python updates/v0143/native_apk_path.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.14.3-review61
+          run-id: 35385503555
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('output/build-manifest.json').read_text());p=Path('output/COD_Zombies_Guide_v0.14.3.apk')
+          assert m['version']=='0.14.3' and m['reviewedArticles']==61 and m['automaticDraftArticles']==121
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['sha256']
+          PY
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0143-android-final
+          path: android-test-results/
+          retention-days: 30
