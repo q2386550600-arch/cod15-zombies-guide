@@ -24,7 +24,7 @@ jobs:
       - run: |
           python - <<'PY'
           import zipfile,json,re
-          ids={551220,516867,531288}
+          ids={522515,555118,538188}
           with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
               for n in z.namelist():
                   m=re.fullmatch(r'app/src/main/assets/faithful/p(\d+)\.js',n)
