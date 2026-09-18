@@ -33,7 +33,7 @@ jobs:
           def parse(p):
               s=p.read_text(encoding='utf-8');return json.loads(s[s.index('(')+1:s.rfind(')')])
           docs=[parse(p) for p in sorted(Path('app/src/main/assets/faithful').glob('p*.js'))]
-          reviewed=set()
+          reviewed={int(d['metadata']['pageid']) for d in docs if d.get('translated')}
           for p in Path('updates/v014/complete/reviewed').glob('p*.json'):
               try: reviewed.add(int(json.loads(p.read_text())['pageid']))
               except: pass
