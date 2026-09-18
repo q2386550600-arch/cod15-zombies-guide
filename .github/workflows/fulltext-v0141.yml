@@ -51,10 +51,11 @@ jobs:
                       assert '..' not in Path(n).parts
                       p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
           PY
-          python updates/v0141/draft_qa.py
+          python updates/v0141/draft_terms.py
           python updates/v0141/integrate.py
           python updates/v0141/prepare_tests.py
           python updates/v0141/finalize_tests.py
+          python updates/v0141/extra_upgrade_checks.py
           node --check app/src/main/assets/faithful.js
           node --check app/src/main/assets/entry-faithful.js
           python -m py_compile updates/v0141/native_complete.py
@@ -113,6 +114,8 @@ jobs:
           python updates/v0141/unpack_payload.py
           python updates/v014/continue40/prepare.py
           python updates/v0141/prepare_tests.py
+          python updates/v0141/finalize_tests.py
+          python updates/v0141/extra_upgrade_checks.py
       - uses: actions/download-artifact@v4
         with:
           name: COD-Zombies-Guide-v0.14.1
