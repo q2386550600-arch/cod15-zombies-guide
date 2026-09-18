@@ -51,8 +51,10 @@ jobs:
                       assert '..' not in Path(n).parts
                       p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
           PY
+          python updates/v0141/draft_qa.py
           python updates/v0141/integrate.py
           python updates/v0141/prepare_tests.py
+          python updates/v0141/finalize_tests.py
           node --check app/src/main/assets/faithful.js
           node --check app/src/main/assets/entry-faithful.js
           python -m py_compile updates/v0141/native_complete.py
@@ -94,6 +96,8 @@ jobs:
           path: |
             test-results/
             updates/v0141/content-integrity.json
+            .drafts/targeted-qa.json
+          include-hidden-files: true
           retention-days: 30
           if-no-files-found: warn
   android:
