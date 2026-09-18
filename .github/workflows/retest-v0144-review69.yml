@@ -1,0 +1,108 @@
+name: Retest exact v0.14.4 review69 binary
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/retest-v0144-review69.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/review_count_tests.py --reviewed 69 --drafts 113 --extra-ids 558453,558329,526287,310421,558347,526588,508034,682420
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.14.4-review69
+          run-id: 35386484842
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - name: Verify exact binary, extract assets, run full browser QA
+        run: |
+          python - <<'PY'
+          import zipfile,json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('output/build-manifest.json').read_text());p=Path('output/COD_Zombies_Guide_v0.14.4.apk')
+          assert m['version']=='0.14.4' and m['reviewedArticles']==69 and m['automaticDraftArticles']==113
+          assert m['reviewedUnits']==5540 and m['allChineseUnits']==54189
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['sha256']
+          with zipfile.ZipFile(p) as z:
+              for n in z.namelist():
+                  if n.startswith('assets/') and not n.endswith('/'):
+                      q=Path('app/src/main')/n;q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes(z.read(n))
+          PY
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+          python updates/v014/complete/browser_test.py
+          python updates/v014/complete/feature_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0144-browser-final
+          path: test-results/
+          retention-days: 30
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/review_count_tests.py --reviewed 69 --drafts 113 --extra-ids 558453,558329,526287,310421,558347,526588,508034,682420
+          python updates/v014/complete/native_control_verification.py
+          python updates/v0144/native_apk_path.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.14.4-review69
+          run-id: 35386484842
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('output/build-manifest.json').read_text());p=Path('output/COD_Zombies_Guide_v0.14.4.apk')
+          assert m['version']=='0.14.4' and m['reviewedArticles']==69 and m['automaticDraftArticles']==113
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['sha256']
+          PY
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0144-android-final
+          path: android-test-results/
+          retention-days: 30
