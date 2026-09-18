@@ -17,7 +17,6 @@ s=replace_once(s,"assert page.evaluate('FaithfulArticleIndex.report.articlesTran
                  "assert page.evaluate('FaithfulArticleIndex.report.articlesTranslated')==61",p)
 s=replace_once(s,"checks.append('52 source-by-source reviewed sources: all new units, full tables, recommended items, narrative, optional quests and media captions retained')",
                  "checks.append('61 source-by-source reviewed sources: source units, tables, gameplay conditions, narrative and media captions remain source-bound')",p)
-# Verify the new review batch is actually the source-bound reviewed data being rendered.
 marker="  assert not errors,errors;assert not missing,missing"
 extra="""  for pid in [569291,677612,314600,562251,590076,678817,12655,678880,595383]:
    page.evaluate('pid=>FaithfulDebug.openDoc(pid)',pid)
@@ -32,10 +31,10 @@ ast.parse(s);p.write_text(s)
 
 p=Path('updates/v014/complete/feature_test.py')
 s=p.read_text()
-s=replace_once(s,"page.click('[data-filter="translated"]');assert page.locator('.articleRow').count()==52",
-                 "page.click('[data-filter="translated"]');assert page.locator('.articleRow').count()==61",p)
-s=replace_once(s,"page.click('[data-filter="pending"]');assert page.locator('.articleRow').count()==130",
-                 "page.click('[data-filter="pending"]');assert page.locator('.articleRow').count()==121",p)
+s=replace_once(s,'page.click(\'[data-filter="translated"]\');assert page.locator(\'.articleRow\').count()==52',
+                 'page.click(\'[data-filter="translated"]\');assert page.locator(\'.articleRow\').count()==61',p)
+s=replace_once(s,'page.click(\'[data-filter="pending"]\');assert page.locator(\'.articleRow\').count()==130',
+                 'page.click(\'[data-filter="pending"]\');assert page.locator(\'.articleRow\').count()==121',p)
 s=replace_once(s,"report['checks'].append('All 182 articles accessible; 52 reviewed / 130 full automatic drafts separated honestly')",
                  "report['checks'].append('All 182 articles accessible; 61 reviewed / 121 full automatic drafts separated honestly')",p)
 old="for pid in [644198,644199,642369,642364,679946,679947,679948,679949,680030,682790,516886,634530]:"
