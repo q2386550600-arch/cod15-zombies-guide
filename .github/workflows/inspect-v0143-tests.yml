@@ -1,0 +1,18 @@
+name: Inspect v0143 test assumptions
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-v0143-tests.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          echo '--- count assumptions ---'
+          grep -n -C 3 -E '52|130|4727|reviewed|automaticDraft|translatedPages' updates/v014/complete/browser_test.py updates/v014/complete/feature_test.py updates/v014/complete/native_test.py | head -320
