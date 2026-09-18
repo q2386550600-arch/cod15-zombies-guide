@@ -1,0 +1,45 @@
+name: Resume source guide toolchain check
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/resume-v0141-probe.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Export current non-secret source tools and probe public text translation
+        run: |
+          mkdir -p output
+          python - <<'PY'
+          import json, pathlib, zipfile, urllib.request, urllib.parse, time
+          with zipfile.ZipFile('output/current-tools.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for root in ['updates','tools','ci','tests','.github']:
+                  for p in pathlib.Path(root).rglob('*'):
+                      if p.is_file(): z.write(p,str(p))
+              for name in ['build.gradle','settings.gradle','gradle.properties']:
+                  p=pathlib.Path(name)
+                  if p.exists():z.write(p,str(p))
+          text='The player must first turn on the power. Pack-a-Punch costs 5000 points.\n[00002] The bow requires four parts, not three.\n[00003] See the table below.'
+          url='https://translate.googleapis.com/translate_a/single?'+urllib.parse.urlencode({'client':'gtx','sl':'en','tl':'zh-CN','dt':'t','q':text})
+          report={'probeOnly':True,'automaticTranslationIsNotReviewed':True}
+          try:
+              with urllib.request.urlopen(url,timeout=30) as r:
+                  data=json.load(r)
+              report['googleWebTranslation']={'ok':True,'input':text,'output':''.join(x[0] for x in data[0] if x[0]),'segments':data[0]}
+          except Exception as e: report['googleWebTranslation']={'ok':False,'error':str(e)}
+          pathlib.Path('output/probe.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cod-v0141-resume-tools
+          path: output/
+          retention-days: 30
+          if-no-files-found: error
