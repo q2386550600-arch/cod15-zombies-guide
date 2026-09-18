@@ -1,0 +1,25 @@
+name: Export v0.14 recovery snapshot
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/export-resume-v014.yml']
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          mkdir -p output
+          git archive --format=zip --prefix=repo/ HEAD > output/repository.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-current-repository
+          path: output/
+          retention-days: 30
+          if-no-files-found: error
