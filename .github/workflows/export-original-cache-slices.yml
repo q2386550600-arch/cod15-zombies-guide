@@ -1,0 +1,70 @@
+name: Export original media checkpoint chunks
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/export-original-cache-slices.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: cache
+      - name: Split exact ZIP bytes for transfer; no image resizing or recompression
+        run: |
+          python - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('chunks');root.mkdir()
+          original=Path('cache/original-image-cache.zip');parts=[];total=hashlib.sha256()
+          with original.open('rb') as f:
+              i=0
+              while True:
+                  b=f.read(250000000)
+                  if not b:break
+                  total.update(b);p=root/f'original-images.part{i:02d}';p.write_bytes(b)
+                  parts.append({'file':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()});i+=1
+          assert len(parts)==4
+          manifest={'originalFilename':original.name,'originalBytes':original.stat().st_size,'sha256':total.hexdigest(),'parts':parts}
+          (root/'manifest.json').write_text(json.dumps(manifest,indent=2));print(json.dumps(manifest,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-original-images-part00
+          path: |
+            chunks/original-images.part00
+            chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-original-images-part01
+          path: |
+            chunks/original-images.part01
+            chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-original-images-part02
+          path: |
+            chunks/original-images.part02
+            chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-original-images-part03
+          path: |
+            chunks/original-images.part03
+            chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
