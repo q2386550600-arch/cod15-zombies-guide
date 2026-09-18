@@ -1,0 +1,66 @@
+name: Native upgrade and real image swipes for delivered APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/native-final-offline-v0142.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/v014/complete/native_control_verification.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          run-id: 35373097362
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          assert hashlib.sha256(Path('output/COD_Zombies_Guide_v0.14.2-offline.apk').read_bytes()).hexdigest()=='8ede25ef9cde9d16977928d605f7dacde88e91eed55f65cec641a7cd13666360'
+          PY
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-native-offline-final-tests
+          path: |
+            android-test-results/
+            updates/v014/complete/native_test.py
+            updates/v014/complete/native_control_verification.py
+            updates/v014/complete/test_fixes.py
+          retention-days: 30
