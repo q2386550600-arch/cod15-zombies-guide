@@ -1,0 +1,35 @@
+name: Export review batch 3 source units
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-source-batch3.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - run: |
+          python - <<'PY'
+          import zipfile,json,re
+          ids={558453,558329,526287}
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  m=re.fullmatch(r'app/src/main/assets/faithful/p(\d+)\.js',n)
+                  if not m or int(m.group(1)) not in ids:continue
+                  s=z.read(n).decode('utf-8');d=json.loads(s[s.index('(')+1:s.rfind(')')])
+                  print('=== ARTICLE ===')
+                  print(json.dumps({'pageid':d['metadata']['pageid'],'revision':d['metadata']['revision'],'title':d['metadata']['title'],'fixedUrl':d['metadata']['fixedUrl'],'sourceUnitDigest':d['sourceUnitDigest'],'units':[{'id':u['id'],'en':u['en']} for u in d['units']]},ensure_ascii=False,indent=2))
+          PY
