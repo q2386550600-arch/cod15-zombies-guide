@@ -1,0 +1,82 @@
+name: Export v0.14.1 delivery files
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/export-v0141-delivery.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.14.1
+          run-id: 35372980741
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: release
+      - uses: actions/download-artifact@v4
+        with:
+          name: cod-v0141-final-native-evidence
+          run-id: 35373150376
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: native-evidence
+      - name: Preserve exact signed APK and attach actual verification boundaries
+        run: |
+          python - <<'PY'
+          import pathlib,json,hashlib,zipfile,shutil
+          root=pathlib.Path('release');app=pathlib.Path('installer');app.mkdir()
+          p=root/'COD_Zombies_Guide_v0.14.1.apk'
+          with p.open('rb') as f:sha=hashlib.file_digest(f,'sha256').hexdigest()
+          assert sha=='470cb901f361afd5d9d3a6a745ede7a571ea703c86f90ee4e3b789547db3425d'
+          report=json.loads((root/'build-verification.json').read_text());assert report['sha256']==sha
+          native=json.loads(pathlib.Path('native-evidence/faithful-native.json').read_text())
+          assert native['passed'] is False and 'Control outside screen: #start' in native['error']
+          text='''COD 僵尸攻略 v0.14.1
+          本包内的 APK 是实际签名构建，不需要用户自行编译。
+          APK SHA-256: 470cb901f361afd5d9d3a6a745ede7a571ea703c86f90ee4e3b789547db3425d
+          
+          已完成：182篇已归档来源、54189个文字单元均有中文对照。53篇标为逐段校对（原40篇保留，本轮新增13篇）；129篇仍为机器初稿，尚未逐句校对，不是全项目最终验收版。
+          本轮校对：火弓、虚空弓、狼弓、雷弓、阿波西肯之剑、阿波西肯仆从、诸神黄昏DG-4、俄里翁之死、铜牛盾、幽灵盾、阿利斯泰尔武器、木桩匕首、银子弹，共778个原文单元。
+          保留原文顺序、标题、正文、表格、图注、媒体链接和固定版本来源。旧1282张离线图片不变；新维基图片仍需联网。
+          
+          已通过：浏览器全量正文结构/表格/图片引用/链接/筛选/章节测试；APK压缩结构和签名校验；与旧版签名一致；旧40篇译文与旧图文件完整性对照。
+          未通过：Android 16自动化回归在准备旧版数据时遇到 Control outside screen: #start，尚未走到新版覆盖安装验证。本次不能宣称安卓全流程已通过，也未测试用户三星实体机。原始失败证据完整保留在验收包。
+          安装时先尝试作为更新安装，不要先卸载旧版；未验收覆盖安装的数据保留，重要笔记先另存。
+          
+          使用入口：主线全文、本图背景/区域说明全文、全部来源/武器/支线。机器初稿有明确标识，可切换原文对照。
+          后续工作：继续校对129篇机器初稿；修正原生测试准备阶段并重新验证；核实源文自身不全/互相矛盾之处，不伪装成已补齐。
+          源码包的 app/src 已集成当前数据，不要把针对preview3的 integrate.py 再运行在新数据上。translated=true仅表示有中文，校对必须看reviewStatus。
+          APK构建提交 f3c430fefd44473b4ac351a9f57dc90e7101c5df；构建工作流35372980741；原生失败工作流35373150376。
+          文字来源署名与CC BY-SA 3.0许可保留在文章中，媒体权利单独归原权利人。
+          '''
+          for folder in (root,app):(folder/'说明与验收边界.txt').write_text(text,encoding='utf-8')
+          shutil.copy2(p,app/p.name)
+          shutil.copy2(root/'build-verification.json',app/'build-verification.json')
+          (app/'SHA256.txt').write_text(sha+'  '+p.name+'\n')
+          audit=root/'COD_Guide_v0.14.1_验收记录.zip'
+          with zipfile.ZipFile(audit,'a',zipfile.ZIP_DEFLATED) as z:
+              z.write(root/'说明与验收边界.txt','说明与验收边界.txt')
+              for item in pathlib.Path('native-evidence').rglob('*'):
+                  if item.is_file():z.write(item,str(item))
+          print(json.dumps({'apkBytes':p.stat().st_size,'apkSha256':sha,'browserPassed':True,'androidPassed':False,'sources':182,'reviewed':53,'drafts':129},ensure_ascii=False,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-v0.14.1-Installer
+          path: installer/
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-v0.14.1-Source-Text-Evidence
+          path: |
+            release/COD_Guide_v0.14.1_全文对照.zip
+            release/COD_Guide_v0.14.1_源代码与断点.zip
+            release/COD_Guide_v0.14.1_验收记录.zip
+            release/说明与验收边界.txt
+          compression-level: 0
+          retention-days: 30
