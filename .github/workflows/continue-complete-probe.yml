@@ -1,0 +1,52 @@
+name: Complete-source continuation prerequisites
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/continue-complete-probe.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  prerequisites:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check public source and translation transport
+        run: |
+          mkdir -p continuation-probe
+          python - <<'PY'
+          import requests,json,zipfile
+          from pathlib import Path
+          tests={}
+          queries=['The player must obtain the bow before upgrading it.','[Z00000]\nStep 1\n[Z00001]\nThe player must kill 6 zombies.\n[Z00002]\nDo not end the round.']
+          for i,q in enumerate(queries):
+              try:
+                  r=requests.get('https://translate.googleapis.com/translate_a/single',params={'client':'gtx','sl':'en','tl':'zh-CN','dt':'t','q':q},timeout=30)
+                  tests['translation'+str(i)]={'status':r.status_code,'body':r.text[:7000]}
+              except Exception as e:tests['translation'+str(i)]={'error':str(e)}
+          url='https://static.wikia.nocookie.net/callofduty/images/0/06/Wunderwaffe_DG-1_Render_BO4.png/revision/latest?cb=20250306204812'
+          try:
+              r=requests.get(url,timeout=30);tests['image']={'status':r.status_code,'bytes':len(r.content),'type':r.headers.get('content-type')}
+              if r.ok:Path('continuation-probe/example.png').write_bytes(r.content)
+          except Exception as e:tests['image']={'error':str(e)}
+          Path('continuation-probe/probe.json').write_text(json.dumps(tests,ensure_ascii=False,indent=2))
+          print(json.dumps(tests,ensure_ascii=False,indent=2))
+          with zipfile.ZipFile('continuation-probe/repository-code.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for root in ['updates','tests','tools','ci','.github']:
+                  for p in Path(root).rglob('*'):
+                      if p.is_file():z.write(p,str(p))
+              for n in ['build.gradle','settings.gradle','gradle.properties']:
+                  p=Path(n)
+                  if p.is_file():z.write(p,n)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: complete-source-continuation-probe
+          path: continuation-probe/
+          retention-days: 14
+          if-no-files-found: error
