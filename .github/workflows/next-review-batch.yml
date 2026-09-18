@@ -1,0 +1,71 @@
+name: Export next semantic-review batch
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/next-review-batch.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore verified review checkpoint
+        run: |
+          python updates/v014/complete/prepare.py
+          echo '--- restored review files ---'
+          find updates/v014/complete -maxdepth 3 -type f | sort
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - name: Restore archived fixed-revision source trees and select next gameplay pages
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,json,re,hashlib
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  if re.fullmatch(r'app/src/main/assets/faithful/p\d+\.js',n):
+                      p=Path(n);p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          def parse_js(p):
+              s=p.read_text(encoding='utf-8')
+              return json.loads(s[s.index('(')+1:s.rfind(')')])
+          docs=[parse_js(p) for p in sorted(Path('app/src/main/assets/faithful').glob('p*.js'))]
+          reviewed={d['metadata']['pageid'] for d in docs if d.get('translated')}
+          for p in Path('updates/v014/complete').rglob('*.json'):
+              try:d=json.loads(p.read_text(encoding='utf-8'))
+              except Exception:continue
+              if isinstance(d,dict) and d.get('pageid') and ('translationsInUnitOrder' in d or 'translation' in d or 'reviewed' in d or 'units' in d):
+                  reviewed.add(int(d['pageid']))
+          print('TOTAL',len(docs),'REVIEWED_IDS',len(reviewed))
+          print('REVIEWED',','.join(map(str,sorted(reviewed))))
+          skip=re.compile(r'/(Quotes|Transcript)|Quotes$|Transcript$|Cipher|Radios?$',re.I)
+          keywords=re.compile(r'(Staff|Shield|Drone|G-Strike|Golden|Helmet|Shovel|Spork|Retriever|Redeemer|Paralyzer|Sliquifier|Jet Gun|Thrustodyne|Vril|Focusing|Time Bomb|Trample|Resonator|Ray Gun|Wunderwaffe|Thundergun|Winter|Pack-a-Punch|Perk|Navcard|Easter Egg|Main Quest|Origins|Buried|TranZit|Die Rise|Mob of the Dead|Moon|Shangri-La|Call of the Dead|Ascension)',re.I)
+          candidates=[]
+          for d in docs:
+              pid=int(d['metadata']['pageid']);title=d['metadata']['title']
+              if pid in reviewed or skip.search(title):continue
+              score=(0 if keywords.search(title) else 1, len(d['units']), title.lower())
+              candidates.append((score,pid,title,len(d['units']),d['metadata']['fixedUrl']))
+          candidates.sort()
+          print('--- NEXT CANDIDATES ---')
+          for _,pid,title,n,url in candidates[:40]:
+              print(f'{pid}\t{n}\t{title}\t{url}')
+          samples=list(Path('updates/v014/complete').rglob('*.json'))
+          for p in samples:
+              try:d=json.loads(p.read_text(encoding='utf-8'))
+              except Exception:continue
+              if isinstance(d,dict) and d.get('pageid'):
+                  print('--- REVIEW JSON SAMPLE ---')
+                  print('PATH',p)
+                  print(json.dumps(d,ensure_ascii=False)[:12000])
+                  break
+          PY
