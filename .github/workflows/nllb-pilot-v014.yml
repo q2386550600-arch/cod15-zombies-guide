@@ -1,0 +1,31 @@
+name: Validate full-text translation quality v0.14
+on:
+  push:
+    branches: [main]
+    paths: ['updates/v014/nllb_probe.py','.github/workflows/nllb-pilot-v014.yml']
+permissions:
+  contents: read
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          path: .models/nllb13
+          key: nllb13-30c36268408177b0fce2bfcfa205d877accd327d
+      - run: python -m pip install ctranslate2==4.6.0 sentencepiece requests
+      - run: python updates/v014/nllb_probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-nllb-pilot
+          path: translation-pilot/
+          retention-days: 30
+      - uses: actions/cache/save@v4
+        with:
+          path: .models/nllb13
+          key: nllb13-30c36268408177b0fce2bfcfa205d877accd327d
