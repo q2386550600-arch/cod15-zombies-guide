@@ -1,0 +1,106 @@
+name: Verify delivered offline APK without rebuilding
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/verify-offline-v0142.yml','updates/v014/complete/test_fixes.py']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          run-id: 35373097362
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - name: Verify exact delivered APK and extract its assets
+        run: |
+          python - <<'PY'
+          import zipfile,hashlib
+          from pathlib import Path
+          apk=Path('output/COD_Zombies_Guide_v0.14.2-offline.apk')
+          assert hashlib.sha256(apk.read_bytes()).hexdigest()=='8ede25ef9cde9d16977928d605f7dacde88e91eed55f65cec641a7cd13666360'
+          with zipfile.ZipFile(apk) as z:
+              for n in z.namelist():
+                  if n.startswith('assets/') and not n.endswith('/'):
+                      p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          PY
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - run: python updates/v014/complete/browser_test.py
+      - run: python updates/v014/complete/feature_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-offline-browser-retest
+          path: |
+            test-results/
+            updates/v014/complete/feature_test.py
+            updates/v014/complete/test_fixes.py
+          retention-days: 30
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          run-id: 35373097362
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          assert hashlib.sha256(Path('output/COD_Zombies_Guide_v0.14.2-offline.apk').read_bytes()).hexdigest()=='8ede25ef9cde9d16977928d605f7dacde88e91eed55f65cec641a7cd13666360'
+          PY
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-offline-android-retest
+          path: |
+            android-test-results/
+            updates/v014/complete/native_test.py
+            updates/v014/complete/test_fixes.py
+          retention-days: 30
