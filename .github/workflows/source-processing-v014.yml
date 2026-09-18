@@ -1,0 +1,51 @@
+name: Review translation model and complete source dependencies v0.14
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v014/model_probe.py','updates/v014/collect_dependencies.py','.github/workflows/source-processing-v014.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  translation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python -m pip install ctranslate2==4.6.0 sentencepiece requests
+      - run: python updates/v014/model_probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-translation-pilot
+          path: translation-pilot/
+          retention-days: 30
+      - uses: actions/cache/save@v4
+        with:
+          path: .models/opus-en-zh
+          key: opus-en-zh-b86e9540537d109f999f23f0f6de71b99bd9ad0a
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-source-review
+          run-id: 35302837076
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: source-archive
+      - run: python -m pip install requests beautifulsoup4
+      - run: python updates/v014/collect_dependencies.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-sources-with-dependencies
+          path: source-archive/
+          retention-days: 30
+          if-no-files-found: error
