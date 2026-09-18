@@ -1,0 +1,62 @@
+name: Resume source reader checkpoint
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/resume-reader-checkpoint.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore decoded, hash-checked reader source checkpoint
+        run: |
+          python - <<'PY'
+          import base64,lzma,hashlib,json
+          from pathlib import Path
+          p=Path('updates/v014/delivery')
+          raw=lzma.decompress(base64.b64decode(''.join((p/f'reader23.xz.b64.part{i}').read_text().strip() for i in range(1,5))))
+          assert hashlib.sha256(raw).hexdigest()=='e16b3096dd16b2e3d721a6a9fa4214cb5f007582c4c600022fdbac94efa609a8'
+          for name,text in json.loads(raw).items():
+              f=Path(name)
+              assert not f.is_absolute() and '..' not in f.parts
+              assert name.startswith(('updates/v014/reviewed/','updates/v014/full_reader/'))
+              f.parent.mkdir(parents=True,exist_ok=True);f.write_text(text)
+          PY
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.13.1
+          run-id: 35296241874
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - name: Export only project text, no media duplication or credentials
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('.base/v0131-generated-sources.zip') as z:
+              for n in z.namelist():
+                  p=Path(n)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  if n.startswith('app/src/main/java/') or n=='app/src/main/AndroidManifest.xml' or n=='app/build.gradle':
+                      p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          with zipfile.ZipFile('reader-workspace.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for root in ['updates/v014','ci','.github','app/src/main/java']:
+                  for p in Path(root).rglob('*'):
+                      if p.is_file():z.write(p,str(p))
+              for n in ['build.gradle','settings.gradle','gradle.properties','app/build.gradle','app/src/main/AndroidManifest.xml']:
+                  p=Path(n)
+                  if p.is_file():z.write(p,str(p))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resumed-reader-workspace
+          path: reader-workspace.zip
+          retention-days: 30
+          if-no-files-found: error
