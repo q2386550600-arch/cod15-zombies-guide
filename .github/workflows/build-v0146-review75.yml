@@ -1,4 +1,4 @@
-name: Build v0.14.6 review75
+name: Build v0.14.6 review75 # exact Mob revision bound
 on:
   workflow_dispatch:
   push:
