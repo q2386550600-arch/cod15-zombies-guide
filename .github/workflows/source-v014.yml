@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['updates/v014/collect.py', '.github/workflows/source-v014.yml']
+    paths: ['updates/v014/collect_api.py', '.github/workflows/source-v014.yml']
 permissions:
   contents: read
 jobs:
@@ -15,8 +15,8 @@ jobs:
         with:
           persist-credentials: false
       - run: python -m pip install requests beautifulsoup4
-      - name: Fetch full public wiki pages and preserve all article nodes
-        run: python updates/v014/collect.py
+      - name: Fetch complete wiki API pages and fixed-revision source text
+        run: python updates/v014/collect_api.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
