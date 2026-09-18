@@ -1,0 +1,235 @@
+name: Full Chinese corpus and original-pixel offline APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/complete-offline-v014.yml','updates/v014/complete/hotfix.py']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          if [ -f updates/v014/complete/hotfix.py ]; then python updates/v014/complete/hotfix.py; fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-translation-materials
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - name: Merge every original source unit and original-size picture; preserve approved translations
+        run: |
+          python updates/v014/complete/package.py --version-name 0.14.2-offline --version-code 19
+          python updates/v014/complete/ui.py
+          node --check app/src/main/assets/faithful.js
+          node --check app/src/main/assets/entry-faithful.js
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build same-certificate APK
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          base64 -d signing-key.b64 > debug-signing.jks
+          gradle :app:assembleDebug --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk output/COD_Zombies_Guide_v0.14.2-offline.apk
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs output/COD_Zombies_Guide_v0.14.2-offline.apk > output/signature.txt
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs .base/COD_Zombies_Guide_v0.14.0-preview3.apk > output/previous-signature.txt
+          sha256sum output/COD_Zombies_Guide_v0.14.2-offline.apk > output/SHA256SUMS.txt
+      - name: Verify unchanged legacy assets and export resumable sources and exact APK chunks
+        run: |
+          python - <<'PY'
+          import zipfile,json,re,hashlib
+          from pathlib import Path
+          apk=Path('output/COD_Zombies_Guide_v0.14.2-offline.apk')
+          with zipfile.ZipFile('.base/COD_Zombies_Guide_v0.14.0-preview3.apk') as old,zipfile.ZipFile(apk) as new:
+              assert new.testzip() is None
+              changed={'assets/index.html','assets/faithful.js','assets/faithful.html','assets/faithful.css','assets/entry-faithful.js'}
+              names=[n for n in old.namelist() if n.startswith('assets/') and not n.endswith('/') and n not in changed and not n.startswith('assets/faithful/')]
+              for n in names:assert old.read(n)==new.read(n),('Legacy asset changed',n)
+              images=[n for n in names if n.startswith('assets/images/')]
+              atlas=[n for n in names if n.startswith('assets/atlas/')]
+              assert len(images)==1148 and len(atlas)==134
+              assert len([n for n in new.namelist() if n.startswith('assets/faithful/media/') and not n.endswith('/')])==3308
+          cert=r'Signer #1 certificate SHA-256 digest: (\w+)'
+          digest=re.search(cert,Path('output/signature.txt').read_text()).group(1)
+          assert digest==re.search(cert,Path('output/previous-signature.txt').read_text()).group(1)=='bdcaf7695c4a7bc250b289e8e4dbe1c8a3a0d63696aef4be619ffd79af2a4fc4'
+          Path('output/asset-verification.json').write_text(json.dumps({'unchangedPreviousAssets':len(names),'legacyImagesUnchanged':len(images),'legacyAtlasUnchanged':len(atlas),'offlineOriginalImages':3308,'sameSigningCertificate':digest},indent=2))
+          with zipfile.ZipFile('output/v014-offline-generated-sources.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for root in ['app/src','updates/v014/complete','ci']:
+                  for p in Path(root).rglob('*'):
+                      if p.is_file() and not any(x in str(p) for x in ['/images/','/atlas/','/faithful/media/','__pycache__']) and p.suffix.lower() not in ['.ttf','.otf','.woff','.woff2']:z.write(p,str(p))
+              for n in ['app/build.gradle','build.gradle','settings.gradle','gradle.properties']:
+                  if Path(n).is_file():z.write(n,n)
+          chunks=Path('apk-chunks');chunks.mkdir();parts=[];sha=hashlib.sha256()
+          with apk.open('rb') as f:
+              for i in range(20):
+                  b=f.read(250000000)
+                  if not b:break
+                  sha.update(b);p=chunks/f'offline-apk.part{i:02d}';p.write_bytes(b)
+                  parts.append({'file':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          assert len(parts)<=5
+          manifest={'apk':apk.name,'bytes':apk.stat().st_size,'sha256':sha.hexdigest(),'parts':parts,'versionName':'0.14.2-offline','versionCode':19}
+          (chunks/'manifest.json').write_text(json.dumps(manifest,indent=2));Path('output/apk-manifest.json').write_text(json.dumps(manifest,indent=2))
+          print(json.dumps(manifest,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          path: output/
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0142-offline-apk-part00
+          path: |
+            apk-chunks/offline-apk.part00
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0142-offline-apk-part01
+          path: |
+            apk-chunks/offline-apk.part01
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0142-offline-apk-part02
+          path: |
+            apk-chunks/offline-apk.part02
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0142-offline-apk-part03
+          path: |
+            apk-chunks/offline-apk.part03
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('apk-chunks/offline-apk.part04') != ''
+        with:
+          name: v0142-offline-apk-part04
+          path: |
+            apk-chunks/offline-apk.part04
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-offline-source-and-audits
+          path: |
+            output/*.json
+            output/*.txt
+            output/*.zip
+          retention-days: 30
+  browser:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          if [ -f updates/v014/complete/hotfix.py ]; then python updates/v014/complete/hotfix.py; fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          path: output
+      - name: Extract exactly the delivered APK assets
+        run: |
+          python - <<'PY'
+          import zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('output/COD_Zombies_Guide_v0.14.2-offline.apk') as z:
+              for n in z.namelist():
+                  if n.startswith('assets/') and not n.endswith('/'):
+                      p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          PY
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - run: python updates/v014/complete/browser_test.py
+      - run: python updates/v014/complete/feature_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-offline-browser-tests
+          path: test-results/
+          retention-days: 30
+  android:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          if [ -f updates/v014/complete/hotfix.py ]; then python updates/v014/complete/hotfix.py; fi
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-v0142-offline-build
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare Android 16 emulator
+        run: |
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0142-offline-android-tests
+          path: android-test-results/
+          retention-days: 30
