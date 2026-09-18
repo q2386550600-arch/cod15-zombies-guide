@@ -75,7 +75,7 @@ jobs:
           cert=re.compile(r'Signer #1 certificate SHA-256 digest: (\w+)')
           new=cert.search(Path('output/signature.txt').read_text()).group(1)
           old=cert.search(Path('output/previous-signature.txt').read_text()).group(1)
-          assert new==old=='bdcaf7695c4a7bc250b289e8e4dbe1c8a0d63696aef4be619ffd79af2a4fc4'
+          assert new==old=='bdcaf7695c4a7bc250b289e8e4dbe1c8a3a0d63696aef4be619ffd79af2a4fc4'
           apk=Path('output/COD_Zombies_Guide_v0.14.3.apk')
           with zipfile.ZipFile(apk) as z:
               assert z.testzip() is None
