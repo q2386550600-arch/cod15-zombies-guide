@@ -1,0 +1,161 @@
+name: Source reader 40 complete translations
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v014/continue40/**','.github/workflows/reader40-v014.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: source-reader40-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore verified full-article checkpoints and source-reader fixes
+        run: python updates/v014/continue40/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.13.1
+          run-id: 35296241874
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          run-id: 35304272902
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: parsed
+      - name: Restore actual installed app and package source-aligned reader
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('.base/v0131-generated-sources.zip') as z:
+              for n in z.namelist():
+                  p=Path(n)
+                  assert not p.is_absolute() and '..' not in p.parts
+                  if n.startswith('app/src/') or n=='app/build.gradle':
+                      p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          with zipfile.ZipFile('.base/COD_Zombies_Guide_v0.13.1.apk') as z:
+              for n in z.namelist():
+                  if n.startswith('assets/') and not n.endswith('/'):
+                      assert '..' not in Path(n).parts
+                      p=Path('app/src/main')/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          PY
+          python updates/v014/full_reader/package_reader.py --parsed parsed --reviewed updates/v014/reviewed --out app/src/main/assets/faithful
+          python updates/v014/full_reader/apply_reader.py
+          node --check app/src/main/assets/faithful.js
+          node --check app/src/main/assets/entry-faithful.js
+      - name: Install browser tests
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+      - name: Verify every archived source unit, original table and complete translation
+        run: python updates/v014/full_reader/test_faithful.py
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build signed Android APK
+        run: |
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          base64 -d signing-key.b64 > debug-signing.jks
+          gradle :app:assembleDebug --stacktrace
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk output/COD_Zombies_Guide_v0.14.0-preview3.apk
+          /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --verbose --print-certs output/COD_Zombies_Guide_v0.14.0-preview3.apk > output/signature.txt
+          /usr/local/lib/android/sdk/build-tools/35.0.0/apksigner verify --print-certs .base/COD_Zombies_Guide_v0.13.1.apk > output/previous-signature.txt
+          sha256sum output/COD_Zombies_Guide_v0.14.0-preview3.apk > output/SHA256SUMS.txt
+      - name: Verify unchanged old assets and package durable translation checkpoints
+        run: |
+          python - <<'PY'
+          import zipfile,json,re
+          from pathlib import Path
+          with zipfile.ZipFile('.base/COD_Zombies_Guide_v0.13.1.apk') as a,zipfile.ZipFile('output/COD_Zombies_Guide_v0.14.0-preview3.apk') as b:
+              assert b.testzip() is None
+              names=[n for n in a.namelist() if n.startswith('assets/') and not n.endswith('/') and n!='assets/index.html']
+              assert all(a.read(n)==b.read(n) for n in names)
+              assert 'assets/faithful.html' in b.namelist()
+          cert=r'Signer #1 certificate SHA-256 digest: (\w+)'
+          assert re.search(cert,Path('output/signature.txt').read_text()).group(1)==re.search(cert,Path('output/previous-signature.txt').read_text()).group(1)
+          c=json.loads(Path('app/src/main/assets/faithful/completeness.json').read_text())
+          assert c['articlesTranslated']==40 and c['translatedUnits']==4027 and c['pagesArchived']==182
+          Path('output/completeness.json').write_text(json.dumps(c,ensure_ascii=False,indent=2))
+          Path('output/asset-verification.json').write_text(json.dumps({'unchangedPreviousAssets':len(names),'legacyGuideTextUnchanged':True,'allSourcesTranslated':False,'articlesTranslated':40,'pagesArchived':182,'newWikiImages':'original remote references with file-page attribution'},indent=2))
+          with zipfile.ZipFile('output/v014-reader40-generated-sources.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in list(Path('app/src').rglob('*'))+[Path('app/build.gradle')]:
+                  if p.is_file() and '/images/' not in str(p) and '/atlas/' not in str(p):z.write(p,str(p))
+          with zipfile.ZipFile('output/v014-reader40-reviewed-translations.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for p in Path('updates/v014/reviewed').glob('*.json'):z.write(p,p.name)
+              z.write('app/src/main/assets/faithful/LICENSE-TEXT.txt','LICENSE-TEXT.txt')
+          PY
+          cp test-results/faithful-tests.json output/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          path: output/
+          compression-level: 0
+          retention-days: 30
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-reader40-browser-tests
+          path: test-results/
+          retention-days: 14
+  android:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore matching source-reader native tests
+        run: python updates/v014/continue40/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.13.1
+          run-id: 35296241874
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Prepare emulator runtime
+        run: |
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none
+          disable-animations: true
+          script: python updates/v014/full_reader/native_reader_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-reader40-android-tests
+          path: android-test-results/
+          retention-days: 14
