@@ -1,0 +1,52 @@
+name: Export next semantic-review candidates v2
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/next-review-candidates-v2.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python updates/v014/complete/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,json,re
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  if re.fullmatch(r'app/src/main/assets/faithful/p\d+\.js',n):
+                      p=Path(n);p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(z.read(n))
+          def parse(p):
+              s=p.read_text(encoding='utf-8');return json.loads(s[s.index('(')+1:s.rfind(')')])
+          docs=[parse(p) for p in sorted(Path('app/src/main/assets/faithful').glob('p*.js'))]
+          reviewed=set()
+          for p in Path('updates/v014/complete/reviewed').glob('p*.json'):
+              try: reviewed.add(int(json.loads(p.read_text())['pageid']))
+              except: pass
+          print('REVIEWED_COUNT',len(reviewed))
+          skip=re.compile(r'/(Quotes|Transcript|Audio Logs|T\.V\. Messages)|Quotes$|Transcript$|Ciphers?$|Radios?$',re.I)
+          pri=re.compile(r'(Shield|Staff|Spork|Retriever|Redeemer|Drone|G-Strike|Time Bomb|Trample|Resonator|Paralyzer|Sliquifier|Jet Gun|Thrustodyne|Wunderwaffe|Ray Gun|Thundergun|Winter|Pack-a-Punch|Perk|Navcard|Easter Egg|Main Quest|Origins|Buried|TranZit|Die Rise|Mob of the Dead|Moon|Shangri-La|Call of the Dead|Ascension|Kino|Nacht|Verrückt|Shi No Numa)',re.I)
+          arr=[]
+          for d in docs:
+              pid=int(d['metadata']['pageid']);title=d['metadata']['title']
+              if pid in reviewed or skip.search(title):continue
+              score=(0 if pri.search(title) else 1,len(d['units']),title.lower())
+              arr.append((score,pid,title,len(d['units']),d['metadata']['fixedUrl']))
+          arr.sort()
+          for _,pid,title,n,url in arr[:80]:
+              print(f'CAND\t{pid}\t{n}\t{title}\t{url}')
+          PY
