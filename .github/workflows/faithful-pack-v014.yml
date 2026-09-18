@@ -1,0 +1,31 @@
+name: Validate and package faithful article translations
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v014/reviewed/*.json','updates/v014/full_reader/package_reader.py','.github/workflows/faithful-pack-v014.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          run-id: 35304272902
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: parsed
+      - name: Validate every translated unit against its fixed source revision
+        run: python updates/v014/full_reader/package_reader.py --parsed parsed --reviewed updates/v014/reviewed --out faithful-source
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v014-faithful-source-pack
+          path: faithful-source/
+          retention-days: 30
+          if-no-files-found: error
