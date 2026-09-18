@@ -1,0 +1,17 @@
+name: Inspect reviewed integration
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/inspect-review-integration.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python updates/v014/complete/prepare.py
+          echo '--- package reviewed integration ---'
+          grep -n -C 4 -E 'reviewed|translations|sourceUnitDigest' updates/v014/complete/package.py | head -240
