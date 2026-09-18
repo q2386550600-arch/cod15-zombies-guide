@@ -1,0 +1,71 @@
+name: Recover v0.14 sources and durable translation checkpoints
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['updates/v014/recovery_*.py', 'updates/v014/recover_report.py', 'updates/v014/test_recovery.py', '.github/workflows/recovery-v014.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          run-id: 35304272902
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: parsed
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: v014-translation-*
+          run-id: 35304272902
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: legacy
+      - name: Prove interrupted jobs retain completed units and reject truncated source tails
+        run: python updates/v014/test_recovery.py
+      - name: Recover all sources and quarantine old unreviewed drafts
+        run: python updates/v014/recover_report.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-durable-recovery-ledger
+          path: recovery/
+          retention-days: 30
+  pilot:
+    runs-on: ubuntu-latest
+    needs: recover
+    timeout-minutes: 10
+    env:
+      HF_HUB_DISABLE_XET: '1'
+      TOKENIZERS_PARALLELISM: 'false'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-parsed-complete-corpus
+          run-id: 35304272902
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: parsed
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface/hub
+          key: opennmt-nllb13-70f572a
+      - name: Install consistent tokenizer and runtime
+        run: python -m pip install ctranslate2==4.6.0 'transformers==4.49.0' sentencepiece 'huggingface_hub<1'
+      - name: Save every completed unit; outputs remain drafts requiring review
+        run: python updates/v014/recovery_pilot.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v014-tokenizer-pilot-checkpoints
+          path: recovery/pilot/
+          retention-days: 30
+          if-no-files-found: warn
