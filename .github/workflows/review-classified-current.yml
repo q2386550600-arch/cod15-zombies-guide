@@ -37,7 +37,7 @@ jobs:
       - run: |
           python updates/v014/complete/package.py --version-name 0.15.4 --version-code 31
           python - <<'PY'
-          import json,re
+          import json
           from pathlib import Path
           found=[]
           for p in Path('app/src/main/assets/faithful').glob('p*.js'):
@@ -48,8 +48,7 @@ jobs:
                   found.append((p,d))
           assert len(found)==1,[(str(p),(d.get('metadata') or {}).get('title')) for p,d in found]
           p,d=found[0]
-          pid=int(re.search(r'p(\\d+)\\.js          PY
-,p.name).group(1))
+          pid=int(p.stem[1:])
           print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':d['metadata']['title'],'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units']),'reviewed':d.get('reviewed',False)},ensure_ascii=False))
           for i,u in enumerate(d['units']):
               print('ROW',json.dumps({'i':i,'id':u['id'],'en':u['en'],'zh':u.get('zh','')},ensure_ascii=False))
