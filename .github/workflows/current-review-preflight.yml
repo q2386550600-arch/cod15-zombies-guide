@@ -1,4 +1,4 @@
-name: Current semantic-review preflight # after binding fix
+name: Current semantic-review preflight # after quote batch
 on:
   workflow_dispatch:
   push:
