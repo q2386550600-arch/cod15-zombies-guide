@@ -1,4 +1,4 @@
-name: Export Classified current bilingual review material # dynamic-title
+name: List packaged unreviewed fixed-revision pages
 on:
   workflow_dispatch:
   push:
@@ -39,17 +39,19 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          found=[]
+          out=[]
+          reviewed=0
           for p in Path('app/src/main/assets/faithful').glob('p*.js'):
               raw=p.read_text(encoding='utf-8')
               try: d=json.loads(raw[raw.index('(')+1:raw.rfind(')')])
               except Exception: continue
-              if (d.get('metadata') or {}).get('title')=='Classified':
-                  found.append((p,d))
-          assert len(found)==1,[(str(p),(d.get('metadata') or {}).get('title')) for p,d in found]
-          p,d=found[0]
-          pid=int(p.stem[1:])
-          print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':d['metadata']['title'],'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units']),'reviewed':d.get('reviewed',False)},ensure_ascii=False))
-          for i,u in enumerate(d['units']):
-              print('ROW',json.dumps({'i':i,'id':u['id'],'en':u['en'],'zh':u.get('zh','')},ensure_ascii=False))
+              if d.get('reviewed'):
+                  reviewed+=1
+                  continue
+              out.append((len(d.get('units') or []),p.stem,(d.get('metadata') or {}).get('title',''),(d.get('metadata') or {}).get('revision'),d.get('sourceUnitDigest')))
+          out.sort(reverse=True)
+          print('REVIEWED',reviewed)
+          print('REMAINING',len(out))
+          for n,stem,title,rev,digest in out:
+              print('QUEUE',json.dumps({'pageid':int(stem[1:]),'units':n,'title':title,'revision':rev,'digest':digest},ensure_ascii=False))
           PY
