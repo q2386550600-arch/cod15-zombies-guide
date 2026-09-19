@@ -1,0 +1,52 @@
+name: Export Shadows Giant Eisendrache review material
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-shadows-giant-der-eisendrache.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: cod-v0141-source-unit-drafts
+          run-id: 35369694761
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .drafts
+      - run: |
+          python - <<'PY'
+          import zipfile,json,re
+          wanted={'Shadows of Evil','The Giant','Der Eisendrache'}
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              found=[]
+              for n in z.namelist():
+                  if not re.search(r'/p\d+\.js$',n): continue
+                  s=z.read(n).decode('utf-8')
+                  d=json.loads(s[s.index('(')+1:s.rfind(')')])
+                  title=d['metadata']['title']
+                  if title not in wanted: continue
+                  pid=int(re.search(r'p(\d+)\.js$',n).group(1))
+                  review_path=f'updates/v014/complete/reviewed/p{pid}.json'
+                  print('STATUS',json.dumps({'pageid':pid,'title':title,'alreadyReviewed':__import__('pathlib').Path(review_path).exists()},ensure_ascii=False))
+                  if __import__('pathlib').Path(review_path).exists(): continue
+                  draft=json.loads(open(f'.drafts/drafts/{pid}.json',encoding='utf-8').read())
+                  assert len(draft['translationsInUnitOrder'])==len(d['units'])
+                  found.append(title)
+                  print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':title,'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units'])},ensure_ascii=False))
+                  for i,(u,zh) in enumerate(zip(d['units'],draft['translationsInUnitOrder'])):
+                      print('ROW',json.dumps({'pid':pid,'i':i,'id':u['id'],'en':u['en'],'zh':zh},ensure_ascii=False))
+          PY
