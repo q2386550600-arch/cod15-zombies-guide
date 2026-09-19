@@ -1,4 +1,4 @@
-name: Current semantic-review preflight # after quote batch
+name: Current semantic-review preflight # after BO6 upgraded weapons
 on:
   workflow_dispatch:
   push:
