@@ -1,0 +1,43 @@
+name: Export Verruckt bilingual review material
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-verruckt-bilingual.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: cod-v0141-source-unit-drafts
+          run-id: 35369694761
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .drafts
+      - run: |
+          python - <<'PY'
+          import zipfile,json
+          pid=8740
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              n=f'app/src/main/assets/faithful/p{pid}.js'
+              s=z.read(n).decode('utf-8')
+              d=json.loads(s[s.index('(')+1:s.rfind(')')])
+          draft=json.loads(open(f'.drafts/drafts/{pid}.json',encoding='utf-8').read())
+          assert len(draft['translationsInUnitOrder'])==len(d['units'])
+          print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':d['metadata']['title'],'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units'])},ensure_ascii=False))
+          for i,(u,zh) in enumerate(zip(d['units'],draft['translationsInUnitOrder'])):
+              print('ROW',json.dumps({'i':i,'id':u['id'],'en':u['en'],'zh':zh},ensure_ascii=False))
+          PY
