@@ -1,0 +1,50 @@
+name: Current semantic-review preflight
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/current-review-preflight.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  count:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python updates/v014/complete/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-translation-materials
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - run: |
+          python updates/v014/complete/package.py --version-name 0.15.8 --version-code 35
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/completeness.json').read_text())
+          print('COUNTS',json.dumps({k:r[k] for k in ['pagesArchived','articlesTranslated','automaticDraftArticles','translatedUnits','totalUnits','offlineUniqueImages']},ensure_ascii=False))
+          todo=[]
+          for c in r['checks']:
+              if not c.get('reviewed'):
+                  todo.append({'pageid':c['pageid'],'title':c['title'],'units':c['textUnits'],'revision':c['revision'],'digest':c['sourceUnitDigest']})
+          todo.sort(key=lambda x:(-x['units'],x['title']))
+          for x in todo: print('TODO',json.dumps(x,ensure_ascii=False))
+          PY
