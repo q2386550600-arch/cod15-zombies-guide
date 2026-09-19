@@ -1,4 +1,4 @@
-name: Verify packaged review counts # v0157 preflight
+name: List packaged unreviewed fixed-revision pages # after BO6 upgrades
 on:
   workflow_dispatch:
   push:
