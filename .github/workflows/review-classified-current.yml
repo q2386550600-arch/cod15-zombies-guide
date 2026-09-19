@@ -1,0 +1,49 @@
+name: Export Classified current bilingual review material
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-classified-current.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python updates/v014/complete/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-translation-materials
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - run: |
+          python updates/v014/complete/package.py --version-name 0.15.4 --version-code 31
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          pid=668803
+          p=Path(f'app/src/main/assets/faithful/p{pid}.js')
+          s=p.read_text(encoding='utf-8')
+          d=json.loads(s[s.index('(')+1:s.rfind(')')])
+          print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':d['metadata']['title'],'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units']),'reviewed':d.get('reviewed',False)},ensure_ascii=False))
+          for i,u in enumerate(d['units']):
+              print('ROW',json.dumps({'i':i,'id':u['id'],'en':u['en'],'zh':u.get('zh','')},ensure_ascii=False))
+          PY
