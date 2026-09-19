@@ -1,4 +1,4 @@
-name: Export Classified current bilingual review material # retry
+name: Export Classified current bilingual review material # dynamic-title
 on:
   workflow_dispatch:
   push:
@@ -37,12 +37,19 @@ jobs:
       - run: |
           python updates/v014/complete/package.py --version-name 0.15.4 --version-code 31
           python - <<'PY'
-          import json
+          import json,re
           from pathlib import Path
-          pid=668803
-          p=Path(f'app/src/main/assets/faithful/p{pid}.js')
-          s=p.read_text(encoding='utf-8')
-          d=json.loads(s[s.index('(')+1:s.rfind(')')])
+          found=[]
+          for p in Path('app/src/main/assets/faithful').glob('p*.js'):
+              raw=p.read_text(encoding='utf-8')
+              try: d=json.loads(raw[raw.index('(')+1:raw.rfind(')')])
+              except Exception: continue
+              if (d.get('metadata') or {}).get('title')=='Classified':
+                  found.append((p,d))
+          assert len(found)==1,[(str(p),(d.get('metadata') or {}).get('title')) for p,d in found]
+          p,d=found[0]
+          pid=int(re.search(r'p(\\d+)\\.js          PY
+,p.name).group(1))
           print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':d['metadata']['title'],'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units']),'reviewed':d.get('reviewed',False)},ensure_ascii=False))
           for i,u in enumerate(d['units']):
               print('ROW',json.dumps({'i':i,'id':u['id'],'en':u['en'],'zh':u.get('zh','')},ensure_ascii=False))
