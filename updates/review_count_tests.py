@@ -35,6 +35,15 @@ if extra:
 ast.parse(s);p.write_text(s)
 
 p=Path('updates/v014/complete/feature_test.py');s=p.read_text()
+# Kino der Toten (197844) became source-reviewed in v0.14.8. The restored legacy
+# feature test still hard-codes it as a pending example, so update that assertion
+# to match the delivered source state. Keep this as a QA-only patch.
+s=re.sub(
+    r"""page\.evaluate\('FaithfulDebug\.openDoc\(197844\)'\);assert '待' in page\.locator\('#docStatus'\)\.inner_text\(\) or '未完成' in page\.locator\('#docStatus'\)\.inner_text\(\)""",
+    "page.evaluate('FaithfulDebug.openDoc(197844)');assert page.evaluate('FaithfulDebug.getDoc().reviewed');assert '逐段核对译文' in page.locator('#docStatus').inner_text()",
+    s,
+    count=1,
+)
 s=one(s,r"""page\.click\('\[data-filter="translated"\]'\);assert page\.locator\('\.articleRow'\)\.count\(\)==\d+""",
       f'''page.click('[data-filter="translated"]');assert page.locator('.articleRow').count()=={a.reviewed}''',p)
 s=one(s,r"""page\.click\('\[data-filter="pending"\]'\);assert page\.locator\('\.articleRow'\)\.count\(\)==\d+""",
