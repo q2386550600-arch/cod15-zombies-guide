@@ -1,0 +1,42 @@
+name: List remaining fixed-revision review queue
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-queue-fixed.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - run: |
+          python - <<'PY'
+          import zipfile,json,re
+          from pathlib import Path
+          reviewed={int(re.search(r'p(\d+)\.json$',p.name).group(1)) for p in Path('updates/v014/complete/reviewed').glob('p*.json')}
+          out=[]
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  m=re.search(r'/p(\d+)\.js$',n)
+                  if not m: continue
+                  pid=int(m.group(1))
+                  if pid in reviewed: continue
+                  s=z.read(n).decode('utf-8')
+                  d=json.loads(s[s.index('(')+1:s.rfind(')')])
+                  out.append((len(d.get('units',[])),pid,d['metadata']['title'],d['metadata']['revision'],d['sourceUnitDigest']))
+          out.sort(reverse=True)
+          print('REVIEWED',len(reviewed))
+          print('REMAINING',len(out))
+          for n,pid,title,rev,dig in out:
+              print('QUEUE',json.dumps({'pageid':pid,'units':n,'title':title,'revision':rev,'digest':dig},ensure_ascii=False))
+          PY
