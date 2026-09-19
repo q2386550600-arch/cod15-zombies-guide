@@ -1,0 +1,33 @@
+{
+  "pageid": 514279,
+  "revision": 2932368,
+  "titleZh": "Nuketown Zombies／Radios——5段Moon事件广播",
+  "sourceUnitDigest": "9529ae77a35f2a5984df542bb2316d29779c2c737357077f9686518900dfc357",
+  "sourceUnitCount": 20,
+  "translations": {
+    "p514279-u00000": "Nuketown Zombies在特定Round结束时可听到5段Radio。全部录音都来自Edward Richtofen在Moon“Richtofen's Grand Scheme”事件期间的行为。",
+    "p514279-u00001": "Radio #1（第2波结束）",
+    "p514279-u00002": "（Vril Sphere撞击墙面的声音，随后传来Knife挥击声）",
+    "p514279-u00003": "Edward Richtofen：“我早就该发明一个搬Egg的Robot。愚蠢的Maxis，满脑子规矩，还有那愚蠢的口音！”",
+    "p514279-u00004": "Radio #2（随机）",
+    "p514279-u00005": "（键盘输入声）",
+    "p514279-u00006": "Edward Richtofen：“Login：Teddy。Password：is a liar。”",
+    "p514279-u00007": "（确认音）",
+    "p514279-u00008": "Edward Richtofen：“我又不是骗子——这才正是没人会猜到的原因！”",
+    "p514279-u00009": "Radio #3（随机）",
+    "p514279-u00010": "（Moon Pyramid Device启动并开启，Samantha Maxis从M.P.D.中升起）",
+    "p514279-u00011": "Edward Richtofen：“你好啊，Samantha，你这个小鬼……你的时候就快到了！很快……（笑）非常 非常快！”",
+    "p514279-u00012": "Radio #4（随机）",
+    "p514279-u00013": "（Richtofen把Vril Generator放到M.P.D.前）",
+    "p514279-u00014": "Edward Richtofen：“哦，这可要太有意思了！终于可以面对这个小怪物了。快，给机器通——”",
+    "p514279-u00015": "（静电杂音）",
+    "p514279-u00016": "Radio #5（第24波结束）",
+    "p514279-u00017": "（M.P.D.启动，Richtofen与Samantha交换灵魂）",
+    "p514279-u00018": "Edward Richtofen：“力量。力量！我会控制他们所有人！我要毁掉你们所有人！不过在那之前……游戏还得继续！”",
+    "p514279-u00019": "（Zombie的眼睛变成蓝色）"
+  },
+  "reviewMethod": "逐单元对照固定版本英文原文与中文初译后由GPT逐条语义复核。全部20个原文单元按原顺序保留。",
+  "translatorNotes": [
+    "广播按原触发顺序保留；M.P.D.、Vril Sphere、Vril Generator等剧情专名保留英文。"
+  ]
+}
