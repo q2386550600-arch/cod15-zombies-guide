@@ -1,4 +1,4 @@
-name: Current semantic-review preflight # after Moon Shangri Zetsubou
+name: Current semantic-review preflight # final 182-page verification
 on:
   workflow_dispatch:
   push:
@@ -35,7 +35,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: materials
       - run: |
-          python updates/v014/complete/package.py --version-name 0.15.8 --version-code 35
+          python updates/v014/complete/package.py --version-name 0.16.0 --version-code 36
           python - <<'PY'
           import json
           from pathlib import Path
