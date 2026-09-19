@@ -48,6 +48,10 @@ s=one(s,r"""page\.click\('\[data-filter="translated"\]'\);assert page\.locator\(
       f'''page.click('[data-filter="translated"]');assert page.locator('.articleRow').count()=={a.reviewed}''',p)
 s=one(s,r"""page\.click\('\[data-filter="pending"\]'\);assert page\.locator\('\.articleRow'\)\.count\(\)==\d+""",
       f'''page.click('[data-filter="pending"]');assert page.locator('.articleRow').count()=={a.drafts}''',p)
+if a.drafts==0:
+    old="  assert '待复核' in page.locator('.articleRow small').first.inner_text()"
+    assert s.count(old)==1,(str(p),'zero-draft legacy assertion',s.count(old))
+    s=s.replace(old,"  assert page.locator('.articleRow').count()==0")
 s=one(s,r"""report\['checks'\]\.append\('All 182 articles accessible; \d+ reviewed / \d+ full automatic drafts separated honestly'\)""",
       f"report['checks'].append('All 182 articles accessible; {a.reviewed} reviewed / {a.drafts} full automatic drafts separated honestly')",p)
 if extra:
