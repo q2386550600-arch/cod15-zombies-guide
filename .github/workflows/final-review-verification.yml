@@ -1,0 +1,60 @@
+name: Final review verification
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/final-review-verification.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: python updates/v014/complete/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-translation-materials
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - run: |
+          python updates/v014/complete/package.py --version-name 0.16.0 --version-code 36
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/completeness.json').read_text())
+          keys=['pagesArchived','articlesTranslated','automaticDraftArticles','translatedUnits','totalUnits','offlineUniqueImages']
+          print('COUNTS',json.dumps({k:r[k] for k in keys},ensure_ascii=False))
+          todo=[{
+              'pageid':c['pageid'],'title':c['title'],'units':c['textUnits'],
+              'revision':c['revision'],'digest':c['sourceUnitDigest']
+          } for c in r['checks'] if not c.get('reviewed')]
+          print('REMAINING',len(todo))
+          for x in sorted(todo,key=lambda x:(-x['units'],x['title'])):
+              print('TODO',json.dumps(x,ensure_ascii=False))
+          assert r['pagesArchived']==182
+          assert r['articlesTranslated']==182
+          assert r['automaticDraftArticles']==0
+          assert r['translatedUnits']==54189
+          assert r['totalUnits']==54189
+          assert r['offlineUniqueImages']==3308
+          assert not todo
+          print('FINAL_REVIEW_VERIFIED')
+          PY
