@@ -1,0 +1,37 @@
+{
+  "pageid": 655340,
+  "revision": 2860468,
+  "titleZh": "Mob of the Dead／Ciphers and Scrap Paper——5组密码与Icarus纸片",
+  "sourceUnitDigest": "6797efdb20ffd0d8d166632c4e20e57cbb4f5e7df512ea9ac6616343cb9a5669",
+  "sourceUnitCount": 24,
+  "translations": {
+    "p655340-u00000": "Mob of the Dead共有5组Cipher、1张Scrap Paper，Loading Screen中另有1组Cipher。",
+    "p655340-u00001": "Cipher #1",
+    "p655340-u00002": "这是一组使用41字符Alphabet的Hill Cipher。解密Key为“MOBOFTHEDEADABCD”，来源于地图Loading Screen中的4×4 Encoding Matrix。",
+    "p655340-u00003": "Plaintext如下：",
+    "p655340-u00004": "“我知道Chicago那些所谓‘最优秀的人’目前拒绝合作，让我们处在一定劣势。但你最新的Report仍让我极其不安。我们与North Side Gang之间的Alliance必须维持——否则1929年2月19日发生过的事可能会再次上演。”",
+    "p655340-u00005": "Mob of the Dead Loading Screen中的Encoding Matrix。",
+    "p655340-u00006": "Mob of the Dead Loading Screen中的Encoding Matrix。",
+    "p655340-u00007": "Cipher #2",
+    "p655340-u00008": "同样是使用41字符Alphabet的Hill Cipher，Key与Cipher #1相同。",
+    "p655340-u00009": "Plaintext如下：",
+    "p655340-u00010": "“答案很简单：不离婚。无论Angela对重新开始生活抱有什么幻想，她都必须明白，这件事不会发生。我把她从Chorus Line里默默无闻的位置捧出来，不是为了让她在日子一难过时就转过头来整我。不离婚。她能离开这段Marriage的那一天，就是她离开这个世界的那一天。”",
+    "p655340-u00011": "Cipher #3",
+    "p655340-u00012": "同样是使用41字符Alphabet的Hill Cipher，Key与Cipher #1相同。",
+    "p655340-u00013": "Plaintext如下：",
+    "p655340-u00014": "“我知道已经很久没联系了，但还是想写信告诉你，我过得不错。等了这么久，我终于在这座City闯出了点名堂。这几年工作待我不薄，甚至让我决定休息一阵。等我重新工作后还会再写信给你……也许还会寄些照片。”",
+    "p655340-u00015": "Cipher #4",
+    "p655340-u00016": "同样是使用41字符Alphabet的Hill Cipher，Key与Cipher #1相同。",
+    "p655340-u00017": "Plaintext如下：",
+    "p655340-u00018": "“随信附上几张我拟议中的Comic Strip《Icarus from Mars》的新Illustration。我知道你对之前的投稿并不热情，但还是希望你能换个角度再看一次。住院让我有了比以往更多的时间投入创作，我的画也在飞速进步。期待你的回复。Albert Arlington。”",
+    "p655340-u00019": "Cipher #5",
+    "p655340-u00020": "这组Cipher出现在Loading Screen，使用ADFGX Cipher。",
+    "p655340-u00021": "从German翻译后内容为：“URGENT THE GIANT IS IN FRANCE（紧急：The Giant在France）”。",
+    "p655340-u00022": "Scrap Paper",
+    "p655340-u00023": "地图中有1张Scrap Paper。把碎片拼好后，会得到Arlington漫画《Icarus from Mars》的一页，并附有Editor留下的批注。"
+  },
+  "reviewMethod": "逐单元对照固定版本英文原文与中文初译后由GPT逐条语义复核。全部24个原文单元按原顺序保留。",
+  "translatorNotes": [
+    "密码类型、Key与已解明Plaintext逐条复核；只翻译解密内容，不改动固定版本中的密码学名称和Key。"
+  ]
+}
