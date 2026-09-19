@@ -1,0 +1,39 @@
+{
+  "pageid": 270067,
+  "revision": 3014607,
+  "titleZh": "Revelations（BO1战役）／杂项",
+  "sourceUnitDigest": "bbb1831d59f71f8c984c33fe5d1371b3c139e3e010dda1a7cf6901c7cc956dc6",
+  "sourceUnitCount": 25,
+  "translations": {
+    "p270067-u00000": "杂项",
+    "p270067-u00001": "任务目标中显示的Ascension数字代码可被解读为：",
+    "p270067-u00002": "“准备消灭目标：KENNEDY, JOHN FITZGERALD。该优先级覆盖此前全部指令。”",
+    "p270067-u00003": "“恢复Directive Programming。回应。”",
+    "p270067-u00004": "“古巴盟友批准在墨西哥湾建造永久广播站RUSALKA。PROJECT NOVA已启动。等待指令。”",
+    "p270067-u00005": "使用noclip时，可以看到Jason Hudson在进入审讯室前手持AK-47；当他开门后，这把AK-47会消失。",
+    "p270067-u00006": "Mason会说出“Oswald... compromised!”以及“Kennedy... John... Fitzgerald”。固定版本来源把这与现实中的Lee Harvey Oswald和John F. Kennedy遇刺事件联系起来，并将游戏最终过场中Mason出现在Kennedy遇刺前档案影像人群里的镜头，解读为游戏在暗示Mason可能参与了该事件；这属于游戏叙事层面的暗示，并非现实历史结论。",
+    "p270067-u00007": "本关发生前三天，Weaver曾发Email给Hudson，表示自己已不再信任Mason。他认为Baikonur发生的事情更多是Woods促成，并怀疑Mason已被苏方影响，因此主张在榨取全部情报后将Mason处理掉。这也解释了他曾打算前往Bunker并让Mason死于Nova 6。",
+    "p270067-u00008": "Rocket起飞片段有字幕署名错误：字幕把“Okay, time we got the hell out of here.”标成Mason台词，实际由Woods说出；下一句“Not yet, we need to find Dragovich.”则被标成Woods，实际由Mason说出。",
+    "p270067-u00009": "Mason回忆起自己被洗脑后进入Operating Theater；如果靠近Body Bag里的尸体，可以听到笑声。",
+    "p270067-u00010": "Mason击倒Hudson后，走到Torture Chair右侧可以看到一台小TV仍在显示审讯椅画面，而且画面中的Mason闭着眼睛。",
+    "p270067-u00011": "主菜单中可操作的Console Computer，在Mason从椅子上挣脱后的实际场景中并不存在。",
+    "p270067-u00012": "所有小型TV背面都有Treyarch名称。",
+    "p270067-u00013": "场景属于National Security Agency设施，多个位置都能看到NSA徽章。",
+    "p270067-u00014": "Wii版本存在以下调整：",
+    "p270067-u00015": "与U.S.D.D.类似，Wii版本把本关处理成使用其他版本实机素材拼成的Cutscene；整体明显更短，只保留主要剧情节点。",
+    "p270067-u00016": "Wii版完成任务后会自动获得全部3份Intel。",
+    "p270067-u00017": "Vorkuta闪回中，在Dragovich、Kravchenko和Steiner出现的部分，Mason未被固定时玩家仍可像正常角色一样移动；即使撞到NPC，对方也不会响应玩家碰撞。",
+    "p270067-u00018": "Hudson说明Reznov已经死亡时，会闪回“The Defector”。闪回中的Reznov拿着AK-47，但实际任务中他使用Commando；“Victor Charlie”投影片段同样显示AK-47，而实际关卡也使用Commando。",
+    "p270067-u00019": "离开Hudson被击倒的房间后可以看到两扇关闭的门；靠近右侧那扇门会听到类似野兽的咆哮。",
+    "p270067-u00020": "Mason心跳剧烈时暂停游戏，Pause Screen画面会呈黑白。",
+    "p270067-u00021": "Vorkuta闪回的场景看起来像位于巨大烟囱内部；固定版本来源认为这可能致敬电影《Brazil》。审讯室某些布置，尤其Chair与摆满Torture Equipment的桌面，也与该片存在相似之处。",
+    "p270067-u00022": "进入Operating Theater、Mason想起Vorkuta真相后，可以看到Dragovich、Kravchenko和Steiner；Kravchenko穿着与Rebirth Island中Mason／Reznov相同的服装。",
+    "p270067-u00023": "“The Defector”闪回中的Reznov手持AK-47。",
+    "p270067-u00024": "“The Defector”另一处闪回中的Reznov同样手持AK-47。"
+  },
+  "reviewMethod": "逐单元对照固定版本英文原文与中文初译后由GPT逐条复核；全部25个原文单元按原顺序保留，校正专名、机制和机器直译错误。",
+  "translatorNotes": [
+    "本页涉及BO1虚构剧情对现实历史人物与事件的影射；涉及Mason与Kennedy的内容明确按固定版本来源作为“游戏叙事暗示”转述，不把它写成现实历史结论。",
+    "角色名、任务名和武器名采用系列常用英文专名。"
+  ]
+}
