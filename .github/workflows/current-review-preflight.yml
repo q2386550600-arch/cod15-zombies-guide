@@ -1,4 +1,4 @@
-name: Current semantic-review preflight # after Kino Five TranZit quotes
+name: Current semantic-review preflight # after next three quotes
 on:
   workflow_dispatch:
   push:
