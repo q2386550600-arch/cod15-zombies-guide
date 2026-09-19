@@ -1,4 +1,4 @@
-name: List packaged unreviewed fixed-revision pages
+name: Verify packaged review counts # v0157 preflight
 on:
   workflow_dispatch:
   push:
@@ -39,6 +39,8 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+          c=json.loads(Path('output/completeness.json').read_text())
+          print('COMPLETENESS',json.dumps(c,ensure_ascii=False,sort_keys=True))
           out=[]
           reviewed=0
           for p in Path('app/src/main/assets/faithful').glob('p*.js'):
