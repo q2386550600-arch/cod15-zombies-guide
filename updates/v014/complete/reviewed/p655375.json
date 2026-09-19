@@ -1,0 +1,39 @@
+{
+  "pageid": 655375,
+  "revision": 3025812,
+  "titleZh": "The Giant／Ciphers and Scrap Paper——5组密码与Summoning Key蓝图",
+  "sourceUnitDigest": "89584ab520514c0eccabfe04772f71e7c296c8edf4b63b3ac9233fe5fe1d8c05",
+  "sourceUnitCount": 26,
+  "translations": {
+    "p655375-u00000": "目前已在The Giant发现5组Cipher与1张Scrap Paper。",
+    "p655375-u00001": "Cipher #1",
+    "p655375-u00002": "这是一组Barcode Cipher。",
+    "p655375-u00003": "Plaintext如下：",
+    "p655375-u00004": "“The mountain must be searched for the frozen one.（必须在那座山中寻找被冻结的人。）”",
+    "p655375-u00005": "Cipher #2",
+    "p655375-u00006": "这组Cipher利用Periodic Table以及不同Chemical Element的Atomic Number。",
+    "p655375-u00007": "Plaintext如下：",
+    "p655375-u00008": "“In the cell below the waves is where honor suffers.（在海浪下方的牢房中，Honor正在受苦。）”",
+    "p655375-u00009": "Cipher #3",
+    "p655375-u00010": "这是一组Lorenz Cipher。",
+    "p655375-u00011": "Plaintext如下：",
+    "p655375-u00012": "“When finished we will return to the house and the infinite.（完成后，我们会回到The House与The Infinite。）”",
+    "p655375-u00013": "Cipher #4",
+    "p655375-u00014": "这组Cipher使用Corrected Block Tiny Encryption Algorithm。",
+    "p655375-u00015": "Plaintext如下：",
+    "p655375-u00016": "“Even though I put a bullet in his brain, I believe the Summoning Key was successful in extracting him… I mean… me… I hope you get him, Maxis.（尽管我朝他的脑袋开了一枪，但我相信Summoning Key成功把他——我是说，把我——提取了出来。Maxis，希望你能接到他。）”",
+    "p655375-u00017": "Cipher #5",
+    "p655375-u00018": "这是一组Enigma Code。",
+    "p655375-u00019": "Plaintext如下：",
+    "p655375-u00020": "“A city of fire surrounds the warrior, the last of his kind.（一座燃烧的城市包围着那名Warrior——他是同类中的最后一个。）”",
+    "p655375-u00021": "Scrap Paper",
+    "p655375-u00022": "地图中有1张Scrap Paper，是一张描绘Summoning Key的Blueprint，并带有Monty签名。",
+    "p655375-u00023": "Zombies Comics的一张Loading Screen中也出现了The Giant这张Scrap Paper。",
+    "p655375-u00024": "在该Zombies Comics Loading Screen中，可以看到Monty正在绘制这张The Giant Scrap。",
+    "p655375-u00025": "同一张Scrap Paper也出现在Zombies Comics Loading Screen里，由Monty绘制。"
+  },
+  "reviewMethod": "逐单元对照固定版本英文原文与中文初译后由GPT逐条语义复核。全部26个原文单元按原顺序保留。",
+  "translatorNotes": [
+    "5组Cipher的密码类型与Plaintext逐条复核；Summoning Key、The House等剧情专名保留。"
+  ]
+}
