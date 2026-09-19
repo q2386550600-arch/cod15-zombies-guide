@@ -1,0 +1,260 @@
+name: Build v0.15.5 review103
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build-v0155-review103.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Restore verified packaging checkpoint
+        run: python updates/v014/complete/prepare.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-complete-translation-materials
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - uses: actions/download-artifact@v4
+        with:
+          name: v014-original-image-cache
+          run-id: 35369692185
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: materials
+      - name: Integrate all 63 post-preview reviewed pages
+        run: |
+          python updates/v014/complete/package.py --version-name 0.15.5 --version-code 32
+          python updates/v014/complete/ui.py
+          node --check app/src/main/assets/faithful.js
+          node --check app/src/main/assets/entry-faithful.js
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('output/completeness.json').read_text())
+          expected={
+            'articlesWithChinese':182,
+            'articlesTranslated':103,
+            'automaticDraftArticles':79,
+            'translatedUnits':19594,
+            'unitsWithChinese':54189,
+            'offlineUniqueImages':3308
+          }
+          for k,v in expected.items(): assert r[k]==v,(k,r[k],v)
+          print(expected)
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Build signed APK and verify same application identity
+        run: |
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          base64 -d signing-key.b64 > debug-signing.jks
+          gradle :app:assembleDebug --stacktrace
+          mkdir -p output
+          cp app/build/outputs/apk/debug/app-debug.apk output/COD_Zombies_Guide_v0.15.5.apk
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose --print-certs output/COD_Zombies_Guide_v0.15.5.apk > output/signature.txt
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --print-certs .base/COD_Zombies_Guide_v0.14.0-preview3.apk > output/previous-signature.txt
+          python - <<'PY'
+          import re,json,hashlib,zipfile
+          from pathlib import Path
+          cert=re.compile(r'Signer #1 certificate SHA-256 digest: (\w+)')
+          new=cert.search(Path('output/signature.txt').read_text()).group(1)
+          old=cert.search(Path('output/previous-signature.txt').read_text()).group(1)
+          assert new==old=='bdcaf7695c4a7bc250b289e8e4dbe1c8a3a0d63696aef4be619ffd79af2a4fc4'
+          apk=Path('output/COD_Zombies_Guide_v0.15.5.apk')
+          with zipfile.ZipFile(apk) as z:
+              assert z.testzip() is None
+              assert len([n for n in z.namelist() if n.startswith('assets/faithful/media/') and not n.endswith('/')])==3308
+          m={'version':'0.15.5','versionCode':32,'apk':apk.name,'bytes':apk.stat().st_size,'sha256':hashlib.sha256(apk.read_bytes()).hexdigest(),'signingCertificateSha256':new,'reviewedArticles':103,'automaticDraftArticles':79,'reviewedUnits':19594,'allChineseUnits':54189,'offlineOriginalImages':3308}
+          Path('output/build-manifest.json').write_text(json.dumps(m,ensure_ascii=False,indent=2))
+          print(json.dumps(m,ensure_ascii=False,indent=2))
+          PY
+      - name: Export source checkpoint and APK transfer chunks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,json,hashlib
+          out=Path('output')
+          with zipfile.ZipFile(out/'COD_Zombies_Guide_v0.15.5_Source_QA.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for root in ['app/src/main/assets/faithful','updates/v014/complete','updates/v0143','updates/v0145','updates/v0146','updates/v0147','updates/v0148','updates/v0149','updates/v0150','updates/v0151','updates/v0152','updates/v0153','updates/v0154','updates/v0155','ci']:
+                  for p in Path(root).rglob('*'):
+                      if not p.is_file() or '__pycache__' in p.parts: continue
+                      s=str(p).replace('\\','/')
+                      if '/faithful/media/' in s or p.suffix.lower() in ['.ttf','.otf','.woff','.woff2']: continue
+                      z.write(p,s)
+              for p in Path('updates').glob('review_count_tests.py'): z.write(p,str(p))
+              for p in out.glob('*.json'): z.write(p,'audits/'+p.name)
+              for p in out.glob('*.txt'): z.write(p,'audits/'+p.name)
+              z.writestr('README.txt','v0.15.5 source/QA checkpoint. 182 archived sources all have Chinese; 103 source-by-source reviewed, 79 remain full automatic drafts; all 54,189 original source units retained.\n')
+          note='''# COD Zombies Guide v0.15.5\n\n- 182篇固定版本来源均保留完整中英对照。\n- 逐段语义复核：103篇；自动全文初译：79篇。\n- 已逐段复核文字单元：19,594 / 54,189。\n- 本轮在v0.15.4基础上新增4篇完整逐段复核：IX、绝望之旅、死亡之夜、远古邪恶。\n- 3,308张来源原图继续离线保留，不缩放、不重新压缩。\n- 仍有79篇是自动全文初译，不能标记为已核对。\n'''
+          (out/'COD_Zombies_Guide_v0.15.5_更新说明.md').write_text(note)
+          apk=out/'COD_Zombies_Guide_v0.15.5.apk';chunks=Path('apk-chunks');chunks.mkdir(exist_ok=True)
+          parts=[];whole=hashlib.sha256()
+          with apk.open('rb') as f:
+              for i in range(8):
+                  b=f.read(250000000)
+                  if not b:break
+                  whole.update(b);p=chunks/f'v0155-apk.part{i:02d}';p.write_bytes(b)
+                  parts.append({'file':p.name,'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()})
+          m=json.loads((out/'build-manifest.json').read_text());m['parts']=parts
+          assert whole.hexdigest()==m['sha256']
+          (chunks/'manifest.json').write_text(json.dumps(m,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.15.5-review103
+          path: output/
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0155-apk-part00
+          path: |
+            apk-chunks/v0155-apk.part00
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0155-apk-part01
+          path: |
+            apk-chunks/v0155-apk.part01
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0155-apk-part02
+          path: |
+            apk-chunks/v0155-apk.part02
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v0155-apk-part03
+          path: |
+            apk-chunks/v0155-apk.part03
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('apk-chunks/v0155-apk.part04') != ''
+        with:
+          name: v0155-apk-part04
+          path: |
+            apk-chunks/v0155-apk.part04
+            apk-chunks/manifest.json
+          compression-level: 0
+          retention-days: 30
+  browser:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/review_count_tests.py --reviewed 103 --drafts 79 --extra-ids 675622,675624,678711,679571
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.15.5-review103
+          path: output
+      - name: Test exact delivered APK assets
+        run: |
+          python - <<'PY'
+          import zipfile,json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('output/build-manifest.json').read_text());p=Path('output/COD_Zombies_Guide_v0.15.5.apk')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['sha256']
+          with zipfile.ZipFile(p) as z:
+              for n in z.namelist():
+                  if n.startswith('assets/') and not n.endswith('/'):
+                      q=Path('app/src/main')/n;q.parent.mkdir(parents=True,exist_ok=True);q.write_bytes(z.read(n))
+          PY
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+          python updates/v014/complete/browser_test.py
+          python updates/v014/complete/feature_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0155-browser-qa
+          path: test-results/
+          retention-days: 30
+  android:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: |
+          python updates/v014/complete/prepare.py
+          python updates/v014/complete/test_fixes.py
+          python updates/review_count_tests.py --reviewed 103 --drafts 79 --extra-ids 675622,675624,678711,679571
+          python updates/v014/complete/native_control_verification.py
+          python updates/v0155/native_apk_path.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-Zombies-Guide-v0.15.5-review103
+          path: output
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - run: |
+          python - <<'PY'
+          import json,hashlib
+          from pathlib import Path
+          m=json.loads(Path('output/build-manifest.json').read_text());p=Path('output/COD_Zombies_Guide_v0.15.5.apk')
+          assert hashlib.sha256(p.read_bytes()).hexdigest()==m['sha256']
+          PY
+          python -m pip install websocket-client==1.8.0
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot -camera-back none -partition-size 8192
+          disable-animations: true
+          script: python updates/v014/complete/native_test.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v0155-android-qa
+          path: android-test-results/
+          retention-days: 30
