@@ -1,4 +1,4 @@
-name: List packaged unreviewed fixed-revision pages # after BO6 upgrades
+name: List packaged unreviewed fixed-revision pages # after Kino Five TranZit
 on:
   workflow_dispatch:
   push:
