@@ -1,4 +1,4 @@
-name: List packaged unreviewed fixed-revision pages # after Kino Five TranZit
+name: List packaged unreviewed fixed-revision pages # after next three quotes
 on:
   workflow_dispatch:
   push:
