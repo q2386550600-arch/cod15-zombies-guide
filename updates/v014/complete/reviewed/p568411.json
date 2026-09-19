@@ -1,0 +1,34 @@
+{
+  "pageid": 568411,
+  "revision": 2931998,
+  "titleZh": "Origins／Radios——Maxis研究记录与Monty补充广播",
+  "sourceUnitDigest": "9c8e3cfa716bc0019734229f01167cac1e89fa6a77f2921fedbabe92ee9fc7ab",
+  "sourceUnitCount": 21,
+  "translations": {
+    "p568411-u00000": "Radio 1",
+    "p568411-u00001": "Ludvig Maxis：“古代文献记载了一件被称为Amplification Rod的Artifact。我坚信，它是驾驭Elemental Stone能量的关键。遗憾的是，我们所有Dig Site都没有找到这根Rod，也没有找到那些Stone。不管怎样，我们都必须继续推进。因此，我已经依据Main Chamber里的描述画出了Replica Rod的设计图。我会立刻命令Richtofen开始制造。”",
+    "p568411-u00002": "noicon",
+    "p568411-u00003": "Radio 2",
+    "p568411-u00004": "Ludvig Maxis：“对Element 115的研究不断产生意料之外的结果。Conversion Process会形成局部Energy Field，似乎像Portal一样，把来源不明的物体带到这里。虽然这个假设听起来离谱，但我认为这种Matter Transfer可能真的跨越了Space与Time。答案也许就在Mound上的Broken Rune Stone。若能把Conversion Generator的足够能量引导到那里，或许会有成果。”",
+    "p568411-u00005": "noicon",
+    "p568411-u00006": "Radio 3",
+    "p568411-u00007": "Ludvig Maxis：“我们能打开Main Chamber的Seal，完全是偶然——或者命运。反复依靠蛮力毫无作用，只让所有人疲惫而沮丧。为了缓解气氛，一名Soldier把Gramophone带进了Chamber，还带来一张名为‘La Source Noire’的演奏团体录音。令人震惊的是，音乐刚响起几个小节，Seal自己就开始开启。我不禁怀疑，其他类似的Recording是否也能揭开Catacomb的其他区域。”",
+    "p568411-u00008": "noicon",
+    "p568411-u00009": "Radio 4",
+    "p568411-u00010": "Ludvig Maxis：“今早醒来后，我得知夜里发生了一些神秘事件。负责安装Generator的人报告说，他们看见古老的人影从Mound中走出。我本会怀疑他们的说法，可到了早上，许多人不是死了，就是失踪了。”",
+    "p568411-u00011": "noicon",
+    "p568411-u00012": "Radio 5",
+    "p568411-u00013": "Ludvig Maxis：“当115被引导向Ancient Stone时，会出现一种Energy Field，把未知物体拖进我们的Reality。难道Element 115真的在扰乱Space-Time Continuum本身？否则，一只在久远年代制造的Ancient Box，怎么可能拿出来自不同时代的Weapon——甚至可能包括我们自己的未来？必须继续研究，才能理解这些强大而不可预测的力量。”",
+    "p568411-u00014": "noicon",
+    "p568411-u00015": "Radio 6",
+    "p568411-u00016": "Ludvig Maxis：“那个孩子的声音越来越频繁地呼唤我。起初，她只说自己被囚禁在名为‘Agartha’的神话领域。现在她却声称自己是我的女儿——可我明明知道根本没有这个孩子！（叹气）我担心自己的理智正在一点点崩溃。”",
+    "p568411-u00017": "noicon",
+    "p568411-u00018": "Radio 7（仅《黑色行动3》）",
+    "p568411-u00019": "Doctor Monty：“这个该从哪说起呢？你们算是得到了一次重来的机会。Richtofen把Earth炸掉以后，Samantha很困惑，她还在适应自己的新家。不，等等，不对——其实她当时被锁在Reality之外。你们把她救出来，是朝正确方向迈出的一大步。关键是：你们经历事情的顺序，并不一定等于事情实际发生的顺序。不管怎么理解，这确实都是终结的开始……或者说，开始的终结。”",
+    "p568411-u00020": "noicon"
+  },
+  "reviewMethod": "逐单元对照固定版本英文原文与中文初译后由GPT逐条语义复核。全部21个原文单元按原顺序保留。",
+  "translatorNotes": [
+    "Maxis姓名称呼与Element 115、Amplification Rod、Agartha等专名统一；保留Radio 7仅BO3出现的范围。"
+  ]
+}
