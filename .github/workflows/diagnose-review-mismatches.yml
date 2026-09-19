@@ -1,0 +1,53 @@
+name: Diagnose review source mismatches
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/diagnose-review-mismatches.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - run: |
+          python - <<'PY'
+          import zipfile,json,re
+          from pathlib import Path
+          src={}
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  m=re.search(r'/p(\d+)\.js$',n)
+                  if not m: continue
+                  s=z.read(n).decode('utf-8')
+                  d=json.loads(s[s.index('(')+1:s.rfind(')')])
+                  src[int(m.group(1))]=(d['metadata']['revision'],d['sourceUnitDigest'],d['metadata']['title'],len(d['units']))
+          bad=[]
+          good=0
+          for p in sorted(Path('updates/v014/complete/reviewed').glob('p*.json')):
+              r=json.loads(p.read_text(encoding='utf-8'))
+              pid=int(r['pageid'])
+              if pid not in src:
+                  bad.append((pid,'missing-source',None,None))
+                  continue
+              rev,dig,title,count=src[pid]
+              if r['revision']!=rev or r['sourceUnitDigest']!=dig or r.get('sourceUnitCount')!=count:
+                  bad.append((pid,title,
+                              {'reviewRevision':r['revision'],'sourceRevision':rev,
+                               'reviewDigest':r['sourceUnitDigest'],'sourceDigest':dig,
+                               'reviewCount':r.get('sourceUnitCount'),'sourceCount':count}))
+              else:
+                  good+=1
+          print('GOOD',good)
+          print('BAD_COUNT',len(bad))
+          for x in bad: print('BAD',json.dumps(x,ensure_ascii=False))
+          PY
