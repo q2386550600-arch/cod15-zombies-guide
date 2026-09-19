@@ -1,4 +1,4 @@
-name: Current semantic-review preflight # after next three quotes
+name: Current semantic-review preflight # after Moon Shangri Zetsubou
 on:
   workflow_dispatch:
   push:
