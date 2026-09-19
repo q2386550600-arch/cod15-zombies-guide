@@ -1,0 +1,62 @@
+name: Export remaining non-quote review material
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/review-remaining-nonquotes.yml']
+permissions:
+  contents: read
+  actions: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: COD-source-reader-v0.14-preview3
+          run-id: 35362047962
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .base
+      - uses: actions/download-artifact@v4
+        with:
+          name: cod-v0141-source-unit-drafts
+          run-id: 35369694761
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: .drafts
+      - run: |
+          python - <<'PY'
+          import zipfile,json,re
+          wanted={
+            'Easter Eggs',"Richtofen's Grand Scheme/Transcript",'Moon/Radios and Audio Reels',
+            'Shangri-La/Radios','Revelations (mission)/Transcript','Time Travel Will Tell/Transcript',
+            'Voyage of Despair/Ciphers','Revelations (mission)','Blood of the Dead/Ciphers and Scrap Paper',
+            'Kino der Toten/Trivia',"Samantha's Music Box",'Nuketown (map)/Trivia',
+            'Blood of the Dead/Radios and Audio Reels','Zetsubou No Shima/Ciphers and Scrap Papers',
+            'Der Eisendrache/Ciphers and Scrap Paper','Gorod Krovi/Ciphers and Scrap Papers',
+            'Ascension/Radios','Call of the Dead/Radios','The Giant/Radios',
+            'Der Riese/Ciphers and Scrap Paper','Origins/Ciphers and Scrap Paper','Origins/Trivia',
+            'The Giant/Ciphers and Scrap Paper','Der Riese/Trivia','Revelations (mission)/Trivia',
+            'Mob of the Dead/Ciphers and Scrap Paper','Shadows of Evil/Ciphers and Scrap Paper',
+            'Origins/Radios','Nuketown Zombies/Radios','Zetsubou No Shima/Radios'
+          }
+          seen=[]
+          with zipfile.ZipFile('.base/v014-reader40-generated-sources.zip') as z:
+              for n in z.namelist():
+                  m=re.search(r'/p(\d+)\.js$',n)
+                  if not m: continue
+                  raw=z.read(n).decode('utf-8')
+                  d=json.loads(raw[raw.index('(')+1:raw.rfind(')')])
+                  title=d['metadata']['title']
+                  if title not in wanted: continue
+                  pid=int(m.group(1)); seen.append(title)
+                  draft=json.loads(open(f'.drafts/drafts/{pid}.json',encoding='utf-8').read())
+                  assert len(draft['translationsInUnitOrder'])==len(d['units'])
+                  print('META',json.dumps({'pageid':pid,'revision':d['metadata']['revision'],'title':title,'sourceUnitDigest':d['sourceUnitDigest'],'count':len(d['units'])},ensure_ascii=False))
+                  for i,(u,zh) in enumerate(zip(d['units'],draft['translationsInUnitOrder'])):
+                      print('ROW',json.dumps({'pid':pid,'i':i,'id':u['id'],'en':u['en'],'zh':zh},ensure_ascii=False))
+          assert set(seen)==wanted,(set(seen),wanted-set(seen))
+          PY
